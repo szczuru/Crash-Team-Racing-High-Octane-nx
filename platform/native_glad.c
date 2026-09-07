@@ -92,17 +92,24 @@ internal void close_gl(void)
 	}
 }
 #else
+// NOTE: dlfcn.h/dlopen/dlsym/dlclose are not available on Vita (newlib) or
+// Switch (devkitA64/libnx); both platforms resolve GL entry points directly
+// (vglGetProcAddress / NativeRendererSwitch_GetProcAddress in get_proc()
+// below) instead of dlopen-ing a shared library, so open_gl()/close_gl() are
+// no-ops for them and never touch libGL.
+#if !defined(__vita__) && !defined(__SWITCH__)
 #include <dlfcn.h>
+#endif
 global_variable void *libGL;
 
-#if !defined(__APPLE__) && !defined(__HAIKU__)
+#if !defined(__APPLE__) && !defined(__HAIKU__) && !defined(__vita__) && !defined(__SWITCH__)
 typedef void *(APIENTRYP PFNGLXGETPROCADDRESSPROC_PRIVATE)(const char *);
 global_variable PFNGLXGETPROCADDRESSPROC_PRIVATE gladGetProcAddressPtr;
 #endif
 
 internal int open_gl(void)
 {
-#ifdef __vita__
+#if defined(__vita__) || defined(__SWITCH__)
 	return 1;
 #else
 #ifdef __APPLE__
@@ -135,7 +142,7 @@ internal int open_gl(void)
 
 internal void close_gl(void)
 {
-#ifndef __vita__
+#if !defined(__vita__) && !defined(__SWITCH__)
 	if (libGL != NULL)
 	{
 		dlclose(libGL);
