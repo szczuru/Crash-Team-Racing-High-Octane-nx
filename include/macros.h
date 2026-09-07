@@ -7,7 +7,24 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#if defined(__SWITCH__)
+// NOTE: These asserts document 1:1 field-layout parity with the PS1 retail
+// executable (32-bit pointers). They are compile-time only - never read at
+// runtime (verified: no .c file references the OFFSETOF_* retail constants
+// outside of these asserts) - and the same shared headers are continuously
+// validated by the PC/Vita builds already. Nintendo Switch is AArch64/LP64
+// (8-byte pointers), so struct layouts containing pointers legitimately
+// differ in size from the PS1/32-bit reference and would fail every one of
+// these ~670 asserts. Disabling them here (single branch, single file) avoids
+// touching every individual assert site across ~60 headers/sources, keeping
+// the Switch port mergeable against upstream. See docs/SWITCH_PORT.md.
+// NOTE: must still be a valid statement/declaration at both file scope and
+// statement scope (these asserts appear in both contexts) - a trivially-true
+// _Static_assert satisfies both, unlike a bare `((void)0)` expression.
+#define CTR_STATIC_ASSERT(expr) _Static_assert(1, "disabled on __SWITCH__")
+#else
 #define CTR_STATIC_ASSERT(expr) _Static_assert((expr), #expr)
+#endif
 
 typedef uint64_t u64;
 typedef int64_t s64;

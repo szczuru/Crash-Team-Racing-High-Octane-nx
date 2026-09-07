@@ -520,7 +520,10 @@ void CAM_StartOfRace(struct CameraDC *cDC)
 
 	if (hasFlyInCamera)
 	{
-		s32 flyInData = (s32)level1->ptr_restart_points;
+		// NOTE: (s32)ptr truncates real pointers on 64-bit (Switch/AArch64);
+		// keep flyInData as a byte pointer instead (identical addresses on
+		// 32-bit hosts).
+		u8 *flyInData = (u8 *)level1->ptr_restart_points;
 		cDC->trackPathProgress = 0;
 		cDC->transitionBlend = 0;
 
@@ -1531,7 +1534,10 @@ LAB_8001ab04:
 
 	if (cDC->BlastedLerp.boolLerpPending != 0)
 	{
-		cam->delta.y = cam->pos.y + (s32) * (s16 *)((s32)cDC + 0xc8);
+		// NOTE: (s32)cDC truncates real pointers on 64-bit (Switch/AArch64);
+		// route the offset through a byte pointer instead (identical
+		// addresses on 32-bit hosts).
+		cam->delta.y = cam->pos.y + (s32) * (s16 *)((u8 *)cDC + 0xc8);
 	}
 
 	if (d->kartState == KS_MASK_GRABBED)
@@ -1977,7 +1983,10 @@ void CAM_ThTick(struct Thread *t)
 			uVar16 = (u32)*psVar20;
 
 			// +2 to include respawnPoint and modeID
-			psVar20 = (s16 *)((s32)psVar19 + data.EndOfRace_Camera_Size[iVar7] + 2);
+			// NOTE: (s32)ptr truncates real pointers on 64-bit
+			// (Switch/AArch64); route the offset through a byte pointer
+			// instead (identical addresses on 32-bit hosts).
+			psVar20 = (s16 *)((u8 *)psVar19 + data.EndOfRace_Camera_Size[iVar7] + 2);
 
 			psVar15 = &gGT->level1->ptr_restart_points[uVar16];
 

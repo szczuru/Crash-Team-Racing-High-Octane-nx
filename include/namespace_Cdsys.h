@@ -91,7 +91,9 @@ struct XNF
 	// size = numXAs_total
 	// int XaCdPos[0];
 };
-#define XNF_GETXACDPOS(x) (int *)((u32)x + sizeof(struct XNF))
+// NOTE: (u32)x truncates real pointers on 64-bit (Switch/AArch64); use a byte
+// pointer for the offset instead (identical codegen/addresses on 32-bit).
+#define XNF_GETXACDPOS(x) (int *)((u8 *)(x) + sizeof(struct XNF))
 
 struct XaSize
 {

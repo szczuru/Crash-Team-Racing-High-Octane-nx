@@ -168,7 +168,7 @@ void SelectProfile_DrawAdvProfile(struct AdvProgress *adv, int posX, int posY, s
 		int profileTextColor = numberColor | 0x4000;
 		int characterID = adv->characterID;
 		int iconID = data.MetaDataCharacters[characterID].iconID;
-		struct SelectProfileLoadSaveObj *obj = (struct SelectProfileLoadSaveObj *)sdata->ptrLoadSaveObj;
+		struct SelectProfileLoadSaveObj *obj = (struct SelectProfileLoadSaveObj *)(uintptr_t)sdata->ptrLoadSaveObj;
 
 		RECTMENU_DrawPolyGT4(gGT->ptrIcons[iconID], posX + 10, posY + 6, &gGT->backBuffer->primMem, gGT->pushBuffer_UI.ptrOT, iconColor, iconColor, iconColor,
 		                     iconColor, 1, 0x1000);
@@ -248,7 +248,7 @@ void SelectProfile_Init(u16 flags)
 	struct Thread *t;
 	int i;
 
-	obj = (struct SelectProfileLoadSaveObj *)sdata->ptrLoadSaveObj;
+	obj = (struct SelectProfileLoadSaveObj *)(uintptr_t)sdata->ptrLoadSaveObj;
 
 	if (obj == NULL)
 	{
@@ -264,7 +264,9 @@ void SelectProfile_Init(u16 flags)
 		// through this allocation result before its later null check; keep
 		// unpatched until a valid menu repro proves the allocation can fail.
 		obj = (struct SelectProfileLoadSaveObj *)t->object;
-		sdata->ptrLoadSaveObj = (int)obj;
+		// NOTE: ptrLoadSaveObj is `int` (retail 32-bit RAM address slot) -
+		// route through (uintptr_t) instead of a direct pointer<->int cast.
+		sdata->ptrLoadSaveObj = (int)(uintptr_t)obj;
 		obj->icons = &sdata->LoadSaveData[0];
 		memset(obj->icons, 0, sizeof(sdata->LoadSaveData));
 
@@ -346,7 +348,7 @@ void SelectProfile_Destroy(void)
 {
 	struct SelectProfileLoadSaveObj *obj;
 
-	obj = (struct SelectProfileLoadSaveObj *)sdata->ptrLoadSaveObj;
+	obj = (struct SelectProfileLoadSaveObj *)(uintptr_t)sdata->ptrLoadSaveObj;
 	if (obj != NULL)
 	{
 		struct SelectProfileLoadSaveIcon *icon = obj->icons;

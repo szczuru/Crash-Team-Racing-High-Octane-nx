@@ -6,6 +6,11 @@
 /// @param matrix - instance matrix
 /// @param flags - 3 bits boots + 2 bits some offset value (b0 - switch XZ, b1 - ?, b2 - negate the result)
 // NOTE(aalhendi): ASM-verified NTSC-U 926 0x80021edc-0x80022234.
+// NOTE: below, `(int)matrix->m + N * 8` (offsetting into the matrix's 2D
+// array by raw byte count) has been changed to `(u8 *)matrix->m + N * 8` -
+// (int) truncated real pointers on 64-bit (Switch/AArch64); a byte pointer
+// keeps the exact same computed addresses on 32-bit hosts (found via
+// -fsyntax-only -m64 cross-check).
 void CTR_MatrixToRot(SVECTOR *rot, MATRIX *matrix, u32 flags)
 {
 	int iVar2;
@@ -58,14 +63,14 @@ void CTR_MatrixToRot(SVECTOR *rot, MATRIX *matrix, u32 flags)
 		// based on sqrt result, calculate vector
 		if (iVar2 < 0x11)
 		{
-			rot->vx = (s16)ratan2(-(int)matrix->m[t2value1][t2value2], (int)*(s16 *)((int)matrix->m + t2value1 * 8));
-			rot->vy = (s16)ratan2(iVar2, (s32) * (s16 *)((int)matrix->m + t1value * 8));
+			rot->vx = (s16)ratan2(-(int)matrix->m[t2value1][t2value2], (int)*(s16 *)((u8 *)matrix->m + t2value1 * 8));
+			rot->vy = (s16)ratan2(iVar2, (s32) * (s16 *)((u8 *)matrix->m + t1value * 8));
 			rot->vz = (s16)0;
 		}
 		else
 		{
 			rot->vx = (s16)ratan2((int)*psVar5, (int)*psVar11);
-			rot->vy = (s16)ratan2(iVar2, (int)*(s16 *)((int)matrix->m + t1value * 8));
+			rot->vy = (s16)ratan2(iVar2, (int)*(s16 *)((u8 *)matrix->m + t1value * 8));
 			rot->vz = (s16)ratan2((int)matrix->m[t2value1][t1value], -(int)matrix->m[t2value2][t1value]);
 		}
 	}
@@ -74,7 +79,7 @@ void CTR_MatrixToRot(SVECTOR *rot, MATRIX *matrix, u32 flags)
 		// TODO: there's definitely more elegant way for this
 		// probably it was smth like matrix->m[val1][val2]
 
-		psVar5 = (s16 *)((int)matrix->m + t1value * 8);
+		psVar5 = (s16 *)((u8 *)matrix->m + t1value * 8);
 		iVar2 = (int)*psVar5;
 
 		psVar11 = matrix->m[t2value1] + t1value;
@@ -85,13 +90,13 @@ void CTR_MatrixToRot(SVECTOR *rot, MATRIX *matrix, u32 flags)
 		// based on sqrt result, calculate vector
 		if (iVar2 < 0x11)
 		{
-			rot->vx = (s16)ratan2(-(int)matrix->m[t2value1][t2value2], (int)*(s16 *)((int)matrix->m + t2value1 * 8));
+			rot->vx = (s16)ratan2(-(int)matrix->m[t2value1][t2value2], (int)*(s16 *)((u8 *)matrix->m + t2value1 * 8));
 			rot->vy = (s16)ratan2(-(int)matrix->m[t2value2][t1value], iVar2);
 			rot->vz = (s16)0;
 		}
 		else
 		{
-			rot->vx = (s16)ratan2((int)matrix->m[t2value2][t2value1], (int)*(s16 *)((int)matrix->m + t2value2 * 8));
+			rot->vx = (s16)ratan2((int)matrix->m[t2value2][t2value1], (int)*(s16 *)((u8 *)matrix->m + t2value2 * 8));
 			rot->vy = (s16)ratan2(-(int)matrix->m[t2value2][t1value], iVar2);
 			rot->vz = (s16)ratan2((int)*psVar11, (int)*psVar5);
 		}

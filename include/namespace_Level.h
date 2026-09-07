@@ -151,7 +151,9 @@ struct AnimTex
 	// struct IconGroup4* ptrarray[0];
 };
 
-#define ANIMTEX_GETARRAY(x) (struct IconGroup4 **)((u32)x + sizeof(struct AnimTex))
+// NOTE: (u32)x truncates real pointers on 64-bit (Switch/AArch64); use a byte
+// pointer for the offset instead (identical codegen/addresses on 32-bit).
+#define ANIMTEX_GETARRAY(x) (struct IconGroup4 **)((u8 *)(x) + sizeof(struct AnimTex))
 
 struct PVS
 {
@@ -629,7 +631,9 @@ struct SpawnType1
 
 	// void* pointers[0];
 };
-#define ST1_GETPOINTERS(x) (void **)((u32)x + sizeof(struct SpawnType1))
+// NOTE: (u32)x truncates real pointers on 64-bit (Switch/AArch64); use a byte
+// pointer for the offset instead (identical codegen/addresses on 32-bit).
+#define ST1_GETPOINTERS(x) (void **)((u8 *)(x) + sizeof(struct SpawnType1))
 
 struct SpawnPosRot
 {

@@ -533,7 +533,10 @@ void Channel_UpdateChannels()
 			{
 				cur->spuStartAddr = startAddr;
 
-				SpuSetVoiceStartAddr(vNum, (int)startAddr);
+				// NOTE: spuStartAddr stores a small SPU-RAM offset (not a
+				// real CPU pointer) inside a void*; route through uintptr_t
+				// to avoid the pointer-to-int-width warning.
+				SpuSetVoiceStartAddr(vNum, (int)(uintptr_t)startAddr);
 			}
 		}
 

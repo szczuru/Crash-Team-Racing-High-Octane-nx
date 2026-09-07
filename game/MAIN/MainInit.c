@@ -360,11 +360,15 @@ void MainInit_JitPoolsNew(struct GameTracker *gGT)
 	for (int i = 0; i < 3; i++)
 	{
 		struct JitPool *pool = (struct JitPool *)((char *)&gGT->JitPools.smallStack + (sizeof(struct JitPool) * i));
+		// NOTE: walks the raw free-list using the item's first field (`next`,
+		// stored as a real pointer, not a 32-bit RAM address) to reach the
+		// following item; using int* here truncates real pointers on 64-bit
+		// targets, so walk with an actual pointer type instead.
 		int *pointer = (int *)pool->free.first;
 		while (pointer != (int *)0x0)
 		{
 			*(int **)(pointer + 2) = pointer + 2;
-			pointer = (int *)*pointer;
+			pointer = *(int **)pointer;
 		}
 	}
 

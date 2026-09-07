@@ -332,7 +332,9 @@ struct ModelAnim
 	// then verts, then next ModelFrame, then verts, etc...
 };
 
-#define MODELANIM_GETFRAME(x) ((u32)x + sizeof(struct ModelAnim))
+// NOTE: (u32)x truncates real pointers on 64-bit (Switch/AArch64); use a byte
+// pointer for the offset instead (identical codegen/addresses on 32-bit).
+#define MODELANIM_GETFRAME(x) ((u8 *)(x) + sizeof(struct ModelAnim))
 
 struct ModelHeader
 {
@@ -691,6 +693,8 @@ static inline u32 INST_CompressNormalVectorAndDriverIndex(s32 normalX, s32 norma
 	return INST_CompressNormalVector(normalX, normalY, normalZ) | (((u32)driverID + INST_COMPRESSED_DRIVER_INDEX_OFFSET) << INST_COMPRESSED_DRIVER_INDEX_SHIFT);
 }
 
-#define INST_GETIDPP(x) (struct InstDrawPerPlayer *)((u32)x + sizeof(struct Instance))
+// NOTE: (u32)x truncates real pointers on 64-bit (Switch/AArch64); use a byte
+// pointer for the offset instead (identical codegen/addresses on 32-bit).
+#define INST_GETIDPP(x) (struct InstDrawPerPlayer *)((u8 *)(x) + sizeof(struct Instance))
 
 #endif

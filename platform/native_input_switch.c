@@ -20,7 +20,23 @@
 
 #include "platform/native_input_switch.h"
 
+/* libnx <switch.h> defines `typedef struct Thread {...} Thread;` (OS thread
+ * type), which clashes with the game's own `struct Thread`
+ * (include/namespace_Proc.h) since this whole project is one unity build.
+ * This file never names libnx's Thread type, so simply shadowing the macro
+ * around the include (undone right after) is enough. */
+/* NOTE: <switch.h> is header-guarded, and this whole project is one unity
+ * build - whichever *_switch.c file's #include actually runs FIRST (per
+ * main.c's #include order) is the only one whose macro rename takes effect;
+ * the header guard silently skips the body for every later #include, even
+ * with different macros defined. All *_switch.c files that touch <switch.h>
+ * must therefore use the SAME alias names (LibnxOsThread/LibnxOsThreadFunc),
+ * matching native_sdl_shim_switch.c, regardless of which file wins. */
+#define Thread LibnxOsThread
+#define ThreadFunc LibnxOsThreadFunc
 #include <switch.h>
+#undef Thread
+#undef ThreadFunc
 
 /* Prawdziwe nagłówki SDL3 (typy/enumy/stałe są darmowe - nie linkujemy .a). */
 #include <SDL3/SDL.h>
@@ -164,11 +180,14 @@ void SDL_QuitSubSystem(SDL_InitFlags flags)
 	/* PadState nie wymaga jawnego zwolnienia; zostawiamy do reinicjalizacji. */
 }
 
-bool SDL_AddGamepadMappingsFromFile(const char *file)
+int SDL_AddGamepadMappingsFromFile(const char *file)
 {
-	/* Switch nie używa gamecontrollerdb.txt - mapowanie jest natywne (libnx). */
+	/* Switch nie używa gamecontrollerdb.txt - mapowanie jest natywne (libnx).
+	 * Prawdziwe SDL3 zwraca liczbę wczytanych mapowań (int), NIE bool -
+	 * (znalezione przez -fsyntax-only cross-check z prawdziwym
+	 * SDL_gamepad.h: SDLCALL SDL_AddGamepadMappingsFromFile zwraca int). */
 	(void)file;
-	return true;
+	return 0;
 }
 
 /* -------------------------------------------------------------------------- */

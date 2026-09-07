@@ -3369,12 +3369,20 @@ struct Data
                                           {&data.voiceData[15].index[20], 1},
                                       }}},
 
-            .voiceSetPtr = {(int)&data.voiceData[0].voiceSet[0], (int)&data.voiceData[1].voiceSet[0], (int)&data.voiceData[2].voiceSet[0],
-                            (int)&data.voiceData[3].voiceSet[0], (int)&data.voiceData[4].voiceSet[0], (int)&data.voiceData[5].voiceSet[0],
-                            (int)&data.voiceData[6].voiceSet[0], (int)&data.voiceData[7].voiceSet[0], (int)&data.voiceData[8].voiceSet[0],
-                            (int)&data.voiceData[9].voiceSet[0], (int)&data.voiceData[10].voiceSet[0], (int)&data.voiceData[11].voiceSet[0],
-                            (int)&data.voiceData[12].voiceSet[0], (int)&data.voiceData[13].voiceSet[0], (int)&data.voiceData[14].voiceSet[0],
-                            (int)&data.voiceData[15].voiceSet[0]},
+            // NOTE: voiceSetPtr[] used to be initialized here with the
+            // address of each voiceData[i].voiceSet[0] cast to (int). That is
+            // not a valid static-initializer constant expression once
+            // `data` is a real 64-bit-addressed global (Switch/AArch64) -
+            // GCC/Clang reject non-constant address casts to a narrower
+            // integer type in a global initializer ("initializer element is
+            // not constant"). This field is only ever read/written by the
+            // checkpoint/relocation system (platform/native_checkpoint.c),
+            // never dereferenced directly by gameplay code (voice lookups go
+            // through voiceData[i].voiceSet[j].ptr instead) - it is filled at
+            // runtime in Platform_RepairResidentPointers() instead, exactly
+            // like the other resident-pointer fields on this struct
+            // (sdata_static.PtrMempack, etc.).
+            .voiceSetPtr = {0},
 
             .voiceID = {4, 1, 5, 2, 1, 1, 1, 3, 6, 6, 7, 7, 7, 7, 7, 4, 0, 0, 0, 0, 0, 8, 8, 8},
 

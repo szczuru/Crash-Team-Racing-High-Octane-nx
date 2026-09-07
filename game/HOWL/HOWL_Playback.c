@@ -112,7 +112,9 @@ void howl_InitChannelAttr_EngineFX(struct EngineFX *engineFX, struct ChannelAttr
 	attr->ad = 0x80ff;
 	attr->sr = 0x1fc2;
 
-	attr->spuStartAddr = (void *)(sdata->howl_spuAddrs[engineFX->spuIndex].spuAddr << 3);
+	// NOTE: spuAddr is a small SPU-RAM offset (not a real CPU pointer);
+	// route through uintptr_t to avoid the int->pointer-width warning.
+	attr->spuStartAddr = (void *)(uintptr_t)(sdata->howl_spuAddrs[engineFX->spuIndex].spuAddr << 3);
 }
 
 // NOTE(aalhendi): ASM-verified NTSC-U 926 0x8002c424-0x8002c510
@@ -142,7 +144,9 @@ void howl_InitChannelAttr_OtherFX(struct OtherFX *otherFX, struct ChannelAttr *a
 	attr->ad = 0x80ff;
 	attr->sr = 0x1fc2;
 
-	attr->spuStartAddr = (void *)(sdata->howl_spuAddrs[otherFX->spuIndex].spuAddr << 3);
+	// NOTE: spuAddr is a small SPU-RAM offset (not a real CPU pointer);
+	// route through uintptr_t to avoid the int->pointer-width warning.
+	attr->spuStartAddr = (void *)(uintptr_t)(sdata->howl_spuAddrs[otherFX->spuIndex].spuAddr << 3);
 }
 
 // NOTE(aalhendi): ASM-verified NTSC-U 926 0x8002c510-0x8002c64c

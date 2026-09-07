@@ -35,7 +35,13 @@ void JitPool_Init(struct JitPool *AP, int maxItems, int itemSize, char *name)
 
 
 // NOTE(aalhendi): ASM-verified NTSC-U 926 0x800310d4-0x8003112c.
-int JitPool_Add(struct JitPool *AP)
+// NOTE: Retail returns a 32-bit RAM address here (return (s32)item), which
+// callers immediately cast back to a struct pointer. That round-trip truncates
+// real 64-bit pointers on Switch (AArch64/LP64). All three call sites already
+// cast the result to the destination pointer type, so returning the pointer
+// directly (instead of an (s32) address) is a no-op change for every existing
+// platform and fixes the truncation on Switch.
+struct Item *JitPool_Add(struct JitPool *AP)
 {
 	struct Item *item = AP->free.first;
 
@@ -45,7 +51,7 @@ int JitPool_Add(struct JitPool *AP)
 		LIST_AddFront(&AP->taken, item);
 	}
 
-	return (s32)item;
+	return item;
 }
 
 

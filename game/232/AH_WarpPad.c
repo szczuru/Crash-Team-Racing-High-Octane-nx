@@ -139,7 +139,11 @@ void AH_WarpPad_SetNumModelData(struct Instance *inst, struct ModelHeader *mh)
 	struct InstDrawPerPlayer *idpp = INST_GETIDPP(inst);
 
 	idpp[0].ptrCommandList = mh->ptrCommandList;
-	idpp[0].ptrColorLayout = (u32)mh->ptrColors;
+	// NOTE: ptrColorLayout is a checkpoint-tracked fixed 4-byte "retail
+	// 32-bit RAM address slot" (see platform/native_checkpoint.c); round-trip
+	// through uintptr_t instead of casting the pointer directly to (u32),
+	// which truncates on 64-bit targets.
+	idpp[0].ptrColorLayout = (u32)(uintptr_t)mh->ptrColors;
 	idpp[0].ptrTexLayout = mh->ptrTexLayout;
 	idpp[0].ptrCurrFrame = mh->ptrFrameData;
 }

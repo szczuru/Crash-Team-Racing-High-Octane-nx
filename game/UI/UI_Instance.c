@@ -51,7 +51,13 @@ CTR_STATIC_ASSERT(UI_INSTANCE_RELIC_TIME_UNITS_PER_SECOND == 0x3c0);
 CTR_STATIC_ASSERT(UI_INSTANCE_RELIC_TIME_UNITS_PER_TENTH_SECOND == 0x60);
 
 // NOTE(aalhendi): ASM-verified NTSC-U 926 0x8004cae8-0x8004cec4.
-struct Instance *UI_INSTANCE_BirthWithThread(int modelID, int tickFunc, int hudSlot, int rotateToHud, int pushBuffer, int threadName)
+// NOTE: tickFunc/pushBuffer/threadName were `int` (retail 32-bit RAM
+// addresses); callers already cast real pointers to (int) before passing
+// them in, and this function immediately casts them back to their real
+// pointer types below. Taking them as real pointer types end-to-end avoids
+// truncating 64-bit pointers on Switch/AArch64 (found via -fsyntax-only
+// -m64 cross-check) without changing any call site behavior on 32-bit hosts.
+struct Instance *UI_INSTANCE_BirthWithThread(int modelID, void *tickFunc, int hudSlot, int rotateToHud, struct PushBuffer *pushBuffer, const char *threadName)
 {
 	struct GameTracker *gGT = sdata->gGT;
 	struct Model *model = gGT->modelPtr[modelID];
@@ -77,7 +83,7 @@ struct Instance *UI_INSTANCE_BirthWithThread(int modelID, int tickFunc, int hudS
 		s16 scale;
 		int rewardColor;
 
-		hudThread = PROC_BirthWithObject(UI_INSTANCE_THREAD_FLAGS, (void *)tickFunc, (char *)threadName, NULL);
+		hudThread = PROC_BirthWithObject(UI_INSTANCE_THREAD_FLAGS, tickFunc, threadName, NULL);
 
 		// Get the object attached to the thread
 		ui3D = hudThread->object;
@@ -181,7 +187,7 @@ struct Instance *UI_INSTANCE_BirthWithThread(int modelID, int tickFunc, int hudS
 
 		// if pushBuffer is not supplied,
 		// which means this draws in Player pushBuffer
-		if (pushBuffer == 0)
+		if (pushBuffer == NULL)
 		{
 			struct UiElement2D *currUI2D = &hudStruct[hudSlot];
 
@@ -195,7 +201,7 @@ struct Instance *UI_INSTANCE_BirthWithThread(int modelID, int tickFunc, int hudS
 		else
 		{
 			struct InstDrawPerPlayer *idpp = INST_GETIDPP(inst);
-			idpp[0].pushBuffer = (struct PushBuffer *)pushBuffer;
+			idpp[0].pushBuffer = pushBuffer;
 
 			inst->flags |= PUSHBUFFER_EXISTS;
 
@@ -259,11 +265,11 @@ void UI_INSTANCE_InitAll(void)
 	// If you're in Crystal Challenge
 	if ((gameMode1 & CRYSTAL_CHALLENGE) != 0)
 	{
-		sdata->ptrMenuCrystal = UI_INSTANCE_BirthWithThread(STATIC_CRYSTAL, (int)UI_ThTick_Reward, UI_HUD_SLOT_CRYSTAL, 0, 0, (int)rdata.s_crystal1);
-		sdata->ptrHudCrystal = UI_INSTANCE_BirthWithThread(STATIC_CRYSTAL, (int)UI_ThTick_Reward, UI_HUD_SLOT_CRYSTAL, 0, 0, (int)rdata.s_crystal1);
+		sdata->ptrMenuCrystal = UI_INSTANCE_BirthWithThread(STATIC_CRYSTAL, (void *)UI_ThTick_Reward, UI_HUD_SLOT_CRYSTAL, 0, NULL, rdata.s_crystal1);
+		sdata->ptrHudCrystal = UI_INSTANCE_BirthWithThread(STATIC_CRYSTAL, (void *)UI_ThTick_Reward, UI_HUD_SLOT_CRYSTAL, 0, NULL, rdata.s_crystal1);
 
 		// Make a token
-		sdata->ptrToken = UI_INSTANCE_BirthWithThread(STATIC_TOKEN, (int)UI_ThTick_Reward, UI_HUD_SLOT_TOKEN_OR_CTR, 0, 0, (int)sdata->s_token);
+		sdata->ptrToken = UI_INSTANCE_BirthWithThread(STATIC_TOKEN, (void *)UI_ThTick_Reward, UI_HUD_SLOT_TOKEN_OR_CTR, 0, NULL, sdata->s_token);
 
 		// make Crystal invisible
 #if defined(CTR_NATIVE)
@@ -299,9 +305,9 @@ void UI_INSTANCE_InitAll(void)
 	if ((gameMode1 & ADVENTURE_ARENA) != 0)
 	{
 		// is ignoring the return value of these calls intentional?
-		UI_INSTANCE_BirthWithThread(STATIC_RELIC, (int)UI_ThTick_Reward, UI_HUD_SLOT_RELIC, 1, 0, (int)sdata->s_relic1);
-		UI_INSTANCE_BirthWithThread(STATIC_KEY, (int)UI_ThTick_Reward, UI_HUD_SLOT_KEY, 1, 0, (int)sdata->s_key1);
-		UI_INSTANCE_BirthWithThread(STATIC_TROPHY, (int)UI_ThTick_Reward, UI_HUD_SLOT_TROPHY, 0, 0, (int)sdata->s_trophy1);
+		UI_INSTANCE_BirthWithThread(STATIC_RELIC, (void *)UI_ThTick_Reward, UI_HUD_SLOT_RELIC, 1, NULL, sdata->s_relic1);
+		UI_INSTANCE_BirthWithThread(STATIC_KEY, (void *)UI_ThTick_Reward, UI_HUD_SLOT_KEY, 1, NULL, sdata->s_key1);
+		UI_INSTANCE_BirthWithThread(STATIC_TROPHY, (void *)UI_ThTick_Reward, UI_HUD_SLOT_TROPHY, 0, NULL, sdata->s_trophy1);
 
 		GAMEPROG_AdvPercent(&sdata->advProgress);
 
@@ -338,8 +344,8 @@ void UI_INSTANCE_InitAll(void)
 		}
 
 		// The rest of this block only happens in Relic Mode
-		sdata->ptrRelic = UI_INSTANCE_BirthWithThread(STATIC_RELIC, (int)UI_ThTick_Reward, UI_HUD_SLOT_RELIC, 1, 0, (int)sdata->s_relic1);
-		sdata->ptrTimebox1 = UI_INSTANCE_BirthWithThread(STATIC_TIME_CRATE_01, (int)UI_ThTick_CountPickup, UI_HUD_SLOT_TIMEBOX, 1, 0, (int)rdata.s_timebox1);
+		sdata->ptrRelic = UI_INSTANCE_BirthWithThread(STATIC_RELIC, (void *)UI_ThTick_Reward, UI_HUD_SLOT_RELIC, 1, NULL, sdata->s_relic1);
+		sdata->ptrTimebox1 = UI_INSTANCE_BirthWithThread(STATIC_TIME_CRATE_01, (void *)UI_ThTick_CountPickup, UI_HUD_SLOT_TIMEBOX, 1, NULL, rdata.s_timebox1);
 
 		// if instance
 		if (sdata->ptrRelic != 0)
@@ -389,14 +395,24 @@ void UI_INSTANCE_InitAll(void)
 	}
 
 	// used for multiplayer wumpa
-	sdata->ptrPushBufferUI = (int)NULL;
+	// NOTE: ptrPushBufferUI/ptrFruitDisp stay `int` (retail 32-bit RAM address
+	// slots, tracked as 4-byte fields by the checkpoint/relocation system in
+	// platform/native_checkpoint.c) - widening them to real pointers would
+	// desync that system's slot sizing. Route the round-trip through
+	// (uintptr_t) instead of a direct pointer<->int cast: same established
+	// idiom already used at game/MAIN/MainFrame.c and
+	// game/UI/UI_RenderFrame.c for this exact field, and it avoids the
+	// -Wpointer-to-int-cast/-Wint-to-pointer-cast warnings (found via
+	// -fsyntax-only -m64 cross-check) without changing runtime behavior on
+	// any platform.
+	sdata->ptrPushBufferUI = 0;
 	if (gGT->numPlyrCurrGame >= 2)
 	{
 #if defined(CTR_NATIVE)
 		if ((gameMode1 & MAIN_MENU) != 0)
 #endif
 		{
-			sdata->ptrPushBufferUI = (int)&sdata->pushBuffer_DecalMP;
+			sdata->ptrPushBufferUI = (int)(uintptr_t)&sdata->pushBuffer_DecalMP;
 		}
 	}
 
@@ -406,15 +422,15 @@ void UI_INSTANCE_InitAll(void)
 	sdata->pushBuffer_DecalMP.ptrOT = gGT->pushBuffer_UI.ptrOT;
 	sdata->pushBuffer_DecalMP.distanceToScreen_PREV = gGT->pushBuffer_UI.distanceToScreen_PREV;
 
-	sdata->ptrFruitDisp = (int)UI_INSTANCE_BirthWithThread(STATIC_FRUITDISP, (int)UI_ThTick_CountPickup, UI_HUD_SLOT_FRUIT_MODEL, 1, sdata->ptrPushBufferUI,
-	                                                       (int)rdata.s_fruitdisp);
+	sdata->ptrFruitDisp = (int)(uintptr_t)UI_INSTANCE_BirthWithThread(STATIC_FRUITDISP, (void *)UI_ThTick_CountPickup, UI_HUD_SLOT_FRUIT_MODEL, 1,
+	                                                                  (struct PushBuffer *)(uintptr_t)sdata->ptrPushBufferUI, rdata.s_fruitdisp);
 
 	if ((gGT->numPlyrCurrGame < 3) &&
 
 	    // If you're not in Battle Mode
 	    ((gameMode1 & BATTLE_MODE) == 0))
 	{
-		UI_INSTANCE_BirthWithThread(STATIC_BIG1, (int)UI_ThTick_big1, UI_HUD_SLOT_BIG1, 0, 0, (int)sdata->s_big1);
+		UI_INSTANCE_BirthWithThread(STATIC_BIG1, (void *)UI_ThTick_big1, UI_HUD_SLOT_BIG1, 0, NULL, sdata->s_big1);
 	}
 
 	// If you're not in Adventure Mode
@@ -423,12 +439,12 @@ void UI_INSTANCE_InitAll(void)
 		return;
 	}
 
-	sdata->ptrHudC = UI_INSTANCE_BirthWithThread(STATIC_C, (int)UI_ThTick_CtrLetters, UI_HUD_SLOT_TOKEN_OR_CTR, 0, 0, (int)sdata->s_hudc);
-	sdata->ptrHudT = UI_INSTANCE_BirthWithThread(STATIC_T, (int)UI_ThTick_CtrLetters, UI_HUD_SLOT_TOKEN_OR_CTR, 0, 0, (int)sdata->s_hudt);
-	sdata->ptrHudR = UI_INSTANCE_BirthWithThread(STATIC_R, (int)UI_ThTick_CtrLetters, UI_HUD_SLOT_TOKEN_OR_CTR, 0, 0, (int)sdata->s_hudr);
+	sdata->ptrHudC = UI_INSTANCE_BirthWithThread(STATIC_C, (void *)UI_ThTick_CtrLetters, UI_HUD_SLOT_TOKEN_OR_CTR, 0, NULL, sdata->s_hudc);
+	sdata->ptrHudT = UI_INSTANCE_BirthWithThread(STATIC_T, (void *)UI_ThTick_CtrLetters, UI_HUD_SLOT_TOKEN_OR_CTR, 0, NULL, sdata->s_hudt);
+	sdata->ptrHudR = UI_INSTANCE_BirthWithThread(STATIC_R, (void *)UI_ThTick_CtrLetters, UI_HUD_SLOT_TOKEN_OR_CTR, 0, NULL, sdata->s_hudr);
 
 	// Make a token
-	sdata->ptrToken = UI_INSTANCE_BirthWithThread(STATIC_TOKEN, (int)UI_ThTick_Reward, UI_HUD_SLOT_TOKEN_OR_CTR, 0, 0, (int)sdata->s_token);
+	sdata->ptrToken = UI_INSTANCE_BirthWithThread(STATIC_TOKEN, (void *)UI_ThTick_Reward, UI_HUD_SLOT_TOKEN_OR_CTR, 0, NULL, sdata->s_token);
 
 #if defined(CTR_NATIVE)
 	// NOTE(aalhendi): PSX writes the hidden C/T/R flags through null HUD pointers in Garage; native cannot.

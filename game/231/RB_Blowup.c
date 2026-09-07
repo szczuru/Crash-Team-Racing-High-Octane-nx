@@ -45,7 +45,11 @@ static void RB_Blowup_UpdateSlot(int *slot)
 	struct Instance *inst;
 	int nextFrame;
 
-	inst = (struct Instance *)*slot;
+	// NOTE: slot is a fixed 4-byte "retail 32-bit RAM address slot" (same as
+	// blowup[0]/blowup[1] elsewhere in this file); round-trip through
+	// uintptr_t instead of aliasing to a wider pointer type, which would
+	// over-read on 64-bit targets since the slot itself stays 4 bytes wide.
+	inst = (struct Instance *)(uintptr_t)*slot;
 	if (inst == NULL)
 	{
 		return;

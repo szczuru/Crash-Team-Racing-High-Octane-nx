@@ -7,7 +7,10 @@ void CTR_CycleTex_LEV(struct AnimTex *animtex, int timer)
 	struct AnimTex *curAnimTex = animtex;
 
 	// Termination is determined by pointer to First AnimTex
-	while (*(int *)curAnimTex != (int)animtex)
+	// NOTE: ptrActiveTex is the first member of AnimTex, so reading it as a
+	// pointer is identical to the original `*(int *)curAnimTex` reinterpret,
+	// but avoids truncating a real pointer through int on 64-bit targets.
+	while ((void *)curAnimTex->ptrActiveTex != (void *)animtex)
 	{
 		// which texture to draw this frame
 		frameCurr = FPS_HALF(timer) + curAnimTex->frameOffset;
@@ -39,7 +42,10 @@ void CTR_CycleTex_Model(struct AnimTex *animtex, int timer)
 	struct AnimTex *curAnimTex = animtex;
 
 	// Termination is determined by pointer to First AnimTex
-	while (*(int *)curAnimTex != (int)animtex)
+	// NOTE: ptrActiveTex is the first member of AnimTex, so reading it as a
+	// pointer is identical to the original `*(int *)curAnimTex` reinterpret,
+	// but avoids truncating a real pointer through int on 64-bit targets.
+	while ((void *)curAnimTex->ptrActiveTex != (void *)animtex)
 	{
 		// which texture to draw this frame
 		frameCurr = FPS_HALF(timer) + curAnimTex->frameOffset;
@@ -57,7 +63,10 @@ void CTR_CycleTex_Model(struct AnimTex *animtex, int timer)
 
 		// Save new frame
 		// For Model, this is a pointer to a pointer
-		*curAnimTex->ptrActiveTex = (int)ptrArray[frameCurr];
+		// NOTE: *ptrActiveTex is a fixed 4-byte "retail 32-bit RAM address
+		// slot" (checkpoint-tracked layout), so route the round-trip through
+		// uintptr_t instead of casting the pointer directly to int.
+		*curAnimTex->ptrActiveTex = (int)(uintptr_t)ptrArray[frameCurr];
 
 		// Go to next AnimTex, which comes after this AnimTex's ptrarray
 		curAnimTex = (struct AnimTex *)&ptrArray[curAnimTex->numFrames];

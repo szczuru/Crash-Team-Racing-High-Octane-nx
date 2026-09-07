@@ -78,7 +78,12 @@ void MainFrame_ResetDB(struct GameTracker *gGT)
 	uint32_t *puVar3;
 	int iVar4;
 	struct DB *db;
-	int otSwapchainDB;
+	// NOTE: was `int otSwapchainDB` (real pointer truncated to 32 bits, then
+	// widened back for each offset below) - gGT->otSwapchainDB[] is already
+	// `void *[2]`. Keep it as a byte pointer instead - identical addresses
+	// on 32-bit hosts, but does not truncate real 64-bit pointers on
+	// Switch/AArch64 (found via -fsyntax-only -m64 cross-check).
+	u8 *otSwapchainDB;
 
 	// check if new adv hub should be loaded,
 	// this was a random place for ND to put it
@@ -89,7 +94,7 @@ void MainFrame_ResetDB(struct GameTracker *gGT)
 	gGT->backBuffer = &gGT->db[gGT->swapchainIndex];
 	gGT->frameTimer_MainFrame_ResetDB++;
 
-	otSwapchainDB = (int)gGT->otSwapchainDB[gGT->swapchainIndex];
+	otSwapchainDB = (u8 *)gGT->otSwapchainDB[gGT->swapchainIndex];
 
 	db = gGT->backBuffer;
 	db->blurCameraMask = 0;
@@ -108,16 +113,16 @@ void MainFrame_ResetDB(struct GameTracker *gGT)
 
 	for (iVar4 = 0; iVar4 < sdata->gGT->numPlyrCurrGame; iVar4++)
 	{
-		gGT->pushBuffer[iVar4].ptrOT = (uint32_t *)((int)otSwapchainDB + (sdata->gGT->numPlyrCurrGame - iVar4 - 1) * 0x1000 + 0x18);
+		gGT->pushBuffer[iVar4].ptrOT = (uint32_t *)(otSwapchainDB + (sdata->gGT->numPlyrCurrGame - iVar4 - 1) * 0x1000 + 0x18);
 	}
 
 	for (; iVar4 < 4; iVar4++)
 	{
 		// but why?
-		gGT->pushBuffer[iVar4].ptrOT = (uint32_t *)((int)otSwapchainDB + 3 * 0x1000 + 0x18);
+		gGT->pushBuffer[iVar4].ptrOT = (uint32_t *)(otSwapchainDB + 3 * 0x1000 + 0x18);
 	}
 
-	puVar3 = (uint32_t *)((int)otSwapchainDB + 4);
+	puVar3 = (uint32_t *)(otSwapchainDB + 4);
 	gGT->pushBuffer_UI.ptrOT = puVar3;
 	db->otMem.uiOT = puVar3;
 
@@ -655,30 +660,38 @@ b32 MainFrame_HaveAllPads(s16 numPlyrNextGame)
 	return true;
 }
 
+// NOTE: these tag the LOW bits of the `src` pointer itself (bit0 = compressed
+// flag; retail also masks bit1) rather than treating the address as a 32-bit
+// RAM slot. Previously round-tripped through `u32 srcWord = (u32)src`, which
+// truncates the upper bits of a real 64-bit pointer on Switch/AArch64 - the
+// tag-bit test still worked (low bits survive truncation), but reconstructing
+// the untagged pointer from the truncated `u32` would corrupt real pointers
+// above 4GiB. Test/clear the tag bits via uintptr_t directly on the pointer
+// value instead, preserving the full address on every platform.
 static void MainFrame_ReplacePackedVisList(int *dst, void *src, int byteCount)
 {
-	u32 srcWord = (u32)src;
+	uintptr_t srcAddr = (uintptr_t)src;
 
-	if ((srcWord & 1) == 0)
+	if ((srcAddr & 1) == 0)
 	{
 		memcpy(dst, src, byteCount);
 		return;
 	}
 
-	CTR_unknownMaybeThunk1(dst, (void *)(srcWord & ~(u32)3));
+	CTR_unknownMaybeThunk1(dst, (void *)(srcAddr & ~(uintptr_t)3));
 }
 
 static void MainFrame_OrPackedVisList(int *dst, void *src, int byteCount)
 {
-	u32 srcWord = (u32)src;
+	uintptr_t srcAddr = (uintptr_t)src;
 
-	if ((srcWord & 1) == 0)
+	if ((srcAddr & 1) == 0)
 	{
 		CTR_unknownMaybeThunk3(dst, src, byteCount);
 		return;
 	}
 
-	CTR_unknownMaybeThunk2(dst, (void *)(srcWord & ~(u32)3));
+	CTR_unknownMaybeThunk2(dst, (void *)(srcAddr & ~(uintptr_t)3));
 }
 
 static int MainFrame_VisMemHasQuad(const int *visFaceList, const struct QuadBlock *quad, const struct mesh_info *mesh)

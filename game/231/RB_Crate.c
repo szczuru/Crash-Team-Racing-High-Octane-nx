@@ -253,7 +253,7 @@ int RB_CrateWeapon_ThCollide(struct Thread *crateThread, struct Thread *collidin
 		{
 			driver = RB_CrateAny_GetDriver(collidingTh, sps);
 			RB_CrateAny_ExplodeInit(crateInst, 0xfafafa0, true, RB_CrateAny_ShouldPlayBreakSound(driver));
-			if ((int)driver == 1)
+			if (driver == (struct Driver *)1)
 			{
 				return 1;
 			}
@@ -384,7 +384,7 @@ int RB_CrateFruit_ThCollide(struct Thread *crateThread, struct Thread *colliding
 		{
 			driver = RB_CrateAny_GetDriver(collidingTh, sps);
 			RB_CrateAny_ExplodeInit(crateInst, 0xf2953a0, false, RB_CrateAny_ShouldPlayBreakSound(driver));
-			if ((int)driver == 1)
+			if (driver == (struct Driver *)1)
 			{
 				return 1;
 			}
@@ -472,7 +472,7 @@ int RB_CrateTime_ThCollide(struct Thread *crateThread, struct Thread *driverTh, 
 			gGT = sdata->gGT;
 			driver = RB_CrateAny_GetDriver(driverTh, sps);
 			RB_CrateAny_ExplodeInit(crateInst, 0x80ff000, true, RB_CrateAny_ShouldPlayBreakSound(driver));
-			if ((int)driver == 1)
+			if (driver == (struct Driver *)1)
 			{
 				return 1;
 			}

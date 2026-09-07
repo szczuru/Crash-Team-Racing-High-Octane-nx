@@ -2029,7 +2029,12 @@ static struct ModelFrame *RenderBucket_GetFrame(struct Instance *inst, struct Mo
 	// NOTE(aalhendi): Retail 0x80070ca0-0x80070dfc checks ptrAnimations first,
 	// then carries current/next frame through s6/s1 plus ptrDeltaArray through
 	// IDPP 0xd4. Native keeps those values as explicit return values.
-	*deltaArrayOut = (int)anim->ptrDeltaArray;
+	// NOTE: deltaArrayOut is an `int` (retail 32-bit RAM address slot, tracked
+	// by the checkpoint/relocation system as a fixed 4-byte field) - route
+	// the round-trip through (uintptr_t) instead of a direct pointer<->int
+	// cast, avoiding -Wpointer-to-int-cast on 64-bit hosts (found via
+	// -fsyntax-only -m64 cross-check) with no behavior change on 32-bit.
+	*deltaArrayOut = (int)(uintptr_t)anim->ptrDeltaArray;
 	frameIndex = (u16)inst->animFrame;
 	lastFrame = (anim->numFrames & 0x7fff) - 1;
 	hasNextFrame = 0;
@@ -2241,7 +2246,11 @@ static struct RenderBucketEntry *RenderBucket_QueueDraw(struct Instance *inst, s
 	RenderBucket_WriteInstanceCallbackLabels(inst, queuedFlags);
 	idpp->ptrCommandList = mh->ptrCommandList;
 	idpp->ptrTexLayout = mh->ptrTexLayout;
-	idpp->ptrColorLayout = (u32)mh->ptrColors;
+	// NOTE: ptrColorLayout is `u32` (retail 32-bit RAM address slot, tracked
+	// by the checkpoint/relocation system as a fixed 4-byte field) - route
+	// the round-trip through (uintptr_t) instead of a direct pointer<->int
+	// cast, avoiding -Wpointer-to-int-cast on 64-bit hosts.
+	idpp->ptrColorLayout = (u32)(uintptr_t)mh->ptrColors;
 	idpp->instFlags = queuedFlags;
 	return rbi + 1;
 }
@@ -2480,8 +2489,12 @@ static struct RenderBucketPackedVertex RenderBucket_CacheInterpolatedPackedVerte
 static void RenderBucket_CopyScratchColorCache(struct RenderBucketDrawContext *ctx)
 {
 	u32 *scratchColor = RenderBucket_ColorCacheScratch();
-	u32 *commandList = (u32 *)ctx->idpp->ptrCommandList;
-	u32 *colorLayout = (u32 *)ctx->idpp->ptrColorLayout;
+	// NOTE: ptrCommandList/ptrColorLayout are `u32` (retail 32-bit RAM address
+	// slots, tracked by the checkpoint/relocation system as fixed 4-byte
+	// fields) - route the round-trip through (uintptr_t) instead of a direct
+	// int<->pointer cast, avoiding -Wint-to-pointer-cast on 64-bit hosts.
+	u32 *commandList = (u32 *)(uintptr_t)ctx->idpp->ptrCommandList;
+	u32 *colorLayout = (u32 *)(uintptr_t)ctx->idpp->ptrColorLayout;
 	u32 count = commandList[0];
 
 	// NOTE(aalhendi): Retail Execute copies ptrColorLayout to scratchpad 0x140
@@ -2495,7 +2508,7 @@ static void RenderBucket_CopyScratchColorCache(struct RenderBucketDrawContext *c
 
 static int RenderBucket_GetCommandColor(struct RenderBucketDrawContext *ctx, u32 command)
 {
-	u32 *colorLayout = (u32 *)ctx->idpp->ptrColorLayout;
+	u32 *colorLayout = (u32 *)(uintptr_t)ctx->idpp->ptrColorLayout;
 	u32 colorOffset = (command >> 7) & 0x1fc;
 
 	if ((s32)(command << 4) < 0)
@@ -2513,7 +2526,7 @@ static int RenderBucket_GetIndexedColor(struct RenderBucketDrawContext *ctx, u32
 		return RenderBucket_ColorCacheScratch()[colorOffset / sizeof(u32)];
 	}
 
-	return RenderBucket_ReadPackedWord((const u8 *)ctx->idpp->ptrColorLayout + colorOffset);
+	return RenderBucket_ReadPackedWord((const u8 *)(uintptr_t)ctx->idpp->ptrColorLayout + colorOffset);
 }
 
 static void RenderBucket_ApplyColorOnlyCommand(struct RenderBucketDrawContext *ctx, u32 command)
@@ -2558,7 +2571,12 @@ static void RenderBucket_ReadNextFrameDeltaComponent(struct RenderBucketDrawCont
 struct RenderBucketUncompressResult RenderBucket_UncompressAnimationFrame(struct RenderBucketDrawContext *ctx, u32 command, u16 stackIndex)
 {
 	struct RenderBucketUncompressResult result;
-	u32 *deltaArray = (u32 *)ctx->idpp->ptrDeltaArray;
+	// NOTE: InstDrawPerPlayer::ptrDeltaArray is `int` (retail 32-bit RAM
+	// address slot, tracked by the checkpoint/relocation system as a fixed
+	// 4-byte field) - route the round-trip through (uintptr_t) instead of a
+	// direct int<->pointer cast, avoiding -Wint-to-pointer-cast on 64-bit
+	// hosts.
+	u32 *deltaArray = (u32 *)(uintptr_t)ctx->idpp->ptrDeltaArray;
 	u8 flags = (command >> 24) & 0xff;
 
 	// NOTE(aalhendi): ASM-verified NTSC-U 926 0x8006a8e0-0x8006aaa8.
@@ -2610,7 +2628,7 @@ struct RenderBucketUncompressResult RenderBucket_UncompressAnimationFrame(struct
 static struct RenderBucketUncompressResult RenderBucket_UncompressAnimationFrame_NextFrame(struct RenderBucketDrawContext *ctx, u32 command, u16 stackIndex)
 {
 	struct RenderBucketUncompressResult result;
-	u32 *deltaArray = (u32 *)ctx->idpp->ptrDeltaArray;
+	u32 *deltaArray = (u32 *)(uintptr_t)ctx->idpp->ptrDeltaArray;
 	u8 flags = (command >> 24) & 0xff;
 	RenderBucketVertex nextVertex;
 
@@ -2745,7 +2763,12 @@ static uint32_t *RenderBucket_GetNormalOTEntry(int activeRange, int depthMac0)
 	// (MAC0 >> 17) OT lookup at 0x8006ad88-0x8006ad98. Retail trusts QueueDraw's
 	// range producer here; native intentionally does not clamp to depthOffset
 	// because that would mask producer/consumer depth mismatches.
-	return (uint32_t *)activeRange + depthBin;
+	// NOTE: activeRange is `int` (retail 32-bit RAM address, ultimately
+	// InstDrawPerPlayer::otRangeNormal/otRangeSecondary - tracked by the
+	// checkpoint/relocation system as fixed 4-byte fields) - route the
+	// round-trip through (uintptr_t) instead of a direct int<->pointer cast,
+	// avoiding -Wint-to-pointer-cast on 64-bit hosts.
+	return (uint32_t *)(uintptr_t)activeRange + depthBin;
 }
 
 static uint32_t *RenderBucket_GetClampedOTEntry(struct RenderBucketDrawContext *ctx, int activeRange, int depthMac0)
@@ -2766,7 +2789,7 @@ static uint32_t *RenderBucket_GetClampedOTEntry(struct RenderBucketDrawContext *
 		depthBin = ctx->idpp->depthOffset[1];
 	}
 
-	return (uint32_t *)activeRange + depthBin;
+	return (uint32_t *)(uintptr_t)activeRange + depthBin;
 }
 
 static int RenderBucket_TriangleInScreenWindow(struct RenderBucketDrawContext *ctx)
@@ -4540,7 +4563,11 @@ void RenderBucket_DrawFunc_Normal(struct RenderBucketDrawContext *ctx)
 
 	// NOTE(aalhendi): ASM-verified NTSC-U 926 0x8006a52c-0x8006a8e0;
 	// native uses the accepted explicit RenderBucketDrawContext command/FIFO ABI.
-	pCmd = (u32 *)ctx->idpp->ptrCommandList;
+	// NOTE: ptrCommandList is `u32` (retail 32-bit RAM address slot, tracked
+	// by the checkpoint/relocation system as a fixed 4-byte field) - route
+	// the round-trip through (uintptr_t) instead of a direct int<->pointer
+	// cast, avoiding -Wint-to-pointer-cast on 64-bit hosts.
+	pCmd = (u32 *)(uintptr_t)ctx->idpp->ptrCommandList;
 	pCmd++;
 
 	while (*pCmd != 0xffffffff)
@@ -4827,7 +4854,7 @@ static int RenderBucket_DrawReflectionPrimitive(struct RenderBucketDrawContext *
 
 static void RenderBucket_DrawFunc_Special(struct RenderBucketDrawContext *ctx)
 {
-	u32 *pCmd = (u32 *)ctx->idpp->ptrCommandList;
+	u32 *pCmd = (u32 *)(uintptr_t)ctx->idpp->ptrCommandList;
 
 	// NOTE(aalhendi): ASM-verified NTSC-U 926 0x8006bbc0-0x8006bf30;
 	// native uses the accepted explicit RenderBucketDrawContext mirrored FIFO ABI.
@@ -4924,7 +4951,7 @@ static void RenderBucket_DrawFunc_Special(struct RenderBucketDrawContext *ctx)
 
 static void RenderBucket_DrawFunc_Reflection(struct RenderBucketDrawContext *ctx)
 {
-	u32 *pCmd = (u32 *)ctx->idpp->ptrCommandList;
+	u32 *pCmd = (u32 *)(uintptr_t)ctx->idpp->ptrCommandList;
 
 	// NOTE(aalhendi): ASM-verified NTSC-U 926 0x8006c9c4-0x8006cdec;
 	// native uses the accepted explicit RenderBucketDrawContext split/FIFO ABI.
@@ -5026,7 +5053,7 @@ static void RenderBucket_DrawFunc_Reflection(struct RenderBucketDrawContext *ctx
 
 static void RenderBucket_DrawFunc_Split(struct RenderBucketDrawContext *ctx)
 {
-	u32 *pCmd = (u32 *)ctx->idpp->ptrCommandList;
+	u32 *pCmd = (u32 *)(uintptr_t)ctx->idpp->ptrCommandList;
 
 	// NOTE(aalhendi): ASM-verified against NTSC-U 926 0x8006b030-0x8006b24c.
 	// The called water split helper at 0x8006d094 is audited separately.
@@ -5137,7 +5164,7 @@ static void RenderBucket_DrawFunc_Split(struct RenderBucketDrawContext *ctx)
 
 static void RenderBucket_DrawFunc_NormalAlt(struct RenderBucketDrawContext *ctx)
 {
-	u32 *pCmd = (u32 *)ctx->idpp->ptrCommandList;
+	u32 *pCmd = (u32 *)(uintptr_t)ctx->idpp->ptrCommandList;
 
 	// NOTE(aalhendi): ASM-verified NTSC-U 926 alternate entry
 	// 0x8006a6b8-0x8006a8e0 inside RenderBucket_DrawFunc_Normal; native uses

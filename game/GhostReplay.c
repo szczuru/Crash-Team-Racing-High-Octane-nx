@@ -176,7 +176,10 @@ void GhostReplay_ThTick(struct Thread *t)
 			}
 		}
 
-		tape->numPacketsInArray = ((u32)packet - (u32)&tape->packets[0]) >> 4;
+		// NOTE: route the byte-offset through uintptr_t instead of casting
+		// pointers directly to (u32) — avoids truncating real addresses on
+		// 64-bit while keeping the exact retail byte-diff-then->>4 semantics.
+		tape->numPacketsInArray = (u32)((uintptr_t)packet - (uintptr_t)&tape->packets[0]) >> 4;
 
 		tape->numPacketsInArray -= 1;
 

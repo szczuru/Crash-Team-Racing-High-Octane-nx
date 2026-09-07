@@ -54,7 +54,7 @@ static void RB_Burst_UpdateSlot(int *slot)
 	struct Instance *inst;
 	int nextFrame;
 
-	inst = (struct Instance *)*slot;
+	inst = (struct Instance *)(uintptr_t)*slot;
 	if (inst == NULL)
 	{
 		return;
@@ -268,7 +268,12 @@ void RB_Burst_Init(struct Instance *weaponInst)
 
 	// ====== First Instance =========
 
-	burst[1] = (int)currInst;
+	// NOTE: burst[] slots are packed 32-bit retail addresses (matches the
+	// (uintptr_t) round-trip used to read them back in
+	// RB_Burst_ProcessBucket above) - route through (uintptr_t) instead of
+	// casting the pointer directly to `int`, avoiding truncation of real
+	// 64-bit pointers on Switch/AArch64.
+	burst[1] = (int)(uintptr_t)currInst;
 	currInst->depthBiasNormal += -2;
 
 	// set rotation to identity matrix
@@ -282,7 +287,7 @@ void RB_Burst_Init(struct Instance *weaponInst)
 
 	currInst = INSTANCE_Birth3D(gGT->modelPtr[STATIC_WARPEDBURST], s_burst_explosion2, t);
 
-	burst[2] = (int)currInst;
+	burst[2] = (int)(uintptr_t)currInst;
 	currInst->depthBiasNormal += -2;
 
 	currInst->flags |= VISIBLE_DURING_GAMEPLAY;
@@ -304,7 +309,7 @@ void RB_Burst_Init(struct Instance *weaponInst)
 
 	currInst = INSTANCE_Birth3D(gGT->modelPtr[STATIC_SHOCKWAVE_RED], s_burst_shockwave1, t);
 
-	burst[0] = (int)currInst;
+	burst[0] = (int)(uintptr_t)currInst;
 	currInst->depthBiasNormal += -2;
 
 	// instance flags
@@ -319,7 +324,7 @@ void RB_Burst_Init(struct Instance *weaponInst)
 
 	for (int i = 0; /*i < 3*/; i++)
 	{
-		currInst = (struct Instance *)burst[i];
+		currInst = (struct Instance *)(uintptr_t)burst[i];
 
 		currInst->matrix.t[0] = weaponInst->matrix.t[0];
 		currInst->matrix.t[1] = weaponInst->matrix.t[1] + -0x30;

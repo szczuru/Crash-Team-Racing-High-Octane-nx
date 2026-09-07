@@ -60,7 +60,14 @@ int howl_InitGlobals(char *filename)
 // NOTE(aalhendi): ASM-verified NTSC-U 926 0x80029a50-0x80029ab4
 void howl_ParseHeader(struct HowlHeader *hh)
 {
-	u32 addr = (u32)hh;
+	// NOTE: this used to walk a `u32 addr` running cursor (real pointer
+	// truncated to 32 bits, then widened back for each field). Walk a byte
+	// pointer instead - identical addresses/layout on 32-bit hosts, but does
+	// not truncate real 64-bit pointers on Switch/AArch64 (found via
+	// -fsyntax-only -m64 cross-check). howl_endOfHowl stays `int` (retail
+	// 32-bit slot, write-only - never dereferenced elsewhere), so its
+	// assignment still narrows via (uintptr_t).
+	u8 *addr = (u8 *)hh;
 
 	sdata->ptrHowlHeader = (struct HowlHeader *)addr;
 	addr += sizeof(struct HowlHeader);
@@ -80,13 +87,17 @@ void howl_ParseHeader(struct HowlHeader *hh)
 	sdata->howl_songOffsets = (u16 *)addr;
 	addr += sizeof(s16) * hh->numSequences;
 
-	sdata->howl_endOfHowl = addr;
+	sdata->howl_endOfHowl = (int)(uintptr_t)addr;
 }
 
 // NOTE(aalhendi): ASM-verified NTSC-U 926 0x80029ab4-0x80029b2c
 void howl_ParseCseqHeader(struct CseqHeader *ch)
 {
-	u32 addr = (u32)ch;
+	// NOTE: walk a byte pointer instead of a `u32 addr` running cursor -
+	// identical addresses/layout on 32-bit hosts, but does not truncate real
+	// 64-bit pointers on Switch/AArch64 (found via -fsyntax-only -m64
+	// cross-check).
+	u8 *addr = (u8 *)ch;
 
 	sdata->ptrCseqHeader = (struct CseqHeader *)addr;
 	addr += sizeof(struct CseqHeader);
@@ -100,7 +111,7 @@ void howl_ParseCseqHeader(struct CseqHeader *ch)
 	sdata->ptrCseqSongStartOffset = (s16 *)addr;
 	addr += sizeof(s16) * ch->numSongs;
 
-	addr = (addr + 3) & ~3;
+	addr = (u8 *)(((uintptr_t)addr + 3) & ~(uintptr_t)3);
 
 	sdata->ptrCseqSongData = (char *)addr;
 }
@@ -141,7 +152,10 @@ int howl_LoadHeader(char *filename)
 			MEMPACK_ReallocMem(numSector << 0xb);
 
 			// if header needs more sectors loaded, like CTR-U which needs 3 sectors
-			if (numSector < 2 || LOAD_HowlHeaderSectors(&sdata->KartHWL_CdFile, (void *)((int)alloc + 0x800), 1, numSector - 1) != 0)
+			// NOTE: (int)alloc truncates real pointers on 64-bit
+			// (Switch/AArch64); route the offset through a byte pointer
+			// instead (identical addresses on 32-bit hosts).
+			if (numSector < 2 || LOAD_HowlHeaderSectors(&sdata->KartHWL_CdFile, (u8 *)alloc + 0x800, 1, numSector - 1) != 0)
 			{
 				// initilaize header and pointer table
 				howl_ParseHeader(alloc);

@@ -210,7 +210,11 @@ void RB_GenericMine_ThTick(struct Thread *t)
 		}
 
 		// spin driver
-		coll = (struct Instance *)RB_Hazard_HurtDriver(d, 1, mw->instParent->thread->object, param);
+		// NOTE: RB_Hazard_HurtDriver only ever returns 0 or 1 (a boolean
+		// success flag), never a real pointer; `coll` is only used as a
+		// non-null check below, so cast through uintptr_t to avoid the
+		// int-to-pointer-width warning without changing behavior.
+		coll = (struct Instance *)(uintptr_t)RB_Hazard_HurtDriver(d, 1, mw->instParent->thread->object, param);
 
 		// if collision, and if this was a red potion
 		if ((coll != 0) && (mw->flags & MINE_WEAPON_FLAG_RED_BEAKER) != 0)
@@ -304,7 +308,11 @@ void RB_GenericMine_ThTick(struct Thread *t)
 		if (model == STATIC_CRATE_TNT)
 		{
 			// damageType 0 keeps driving unless the shield/mask path absorbs TNT.
-			crate = (struct Crate *)RB_Hazard_HurtDriver(d, 0, mw->instParent->thread->object, 2);
+			// NOTE: RB_Hazard_HurtDriver only ever returns 0 or 1 (a boolean
+			// success flag), never a real pointer; `crate` is only used as a
+			// non-null check below, so cast through uintptr_t to avoid the
+			// int-to-pointer-width warning without changing behavior.
+			crate = (struct Crate *)(uintptr_t)RB_Hazard_HurtDriver(d, 0, mw->instParent->thread->object, 2);
 
 			if (crate == 0)
 			{

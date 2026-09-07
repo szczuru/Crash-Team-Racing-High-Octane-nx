@@ -12,7 +12,12 @@ void LOAD_RunPtrMap(char *origin, int *patchArr, int numPtrs)
 	for (ptrCurrOffset = &patchArr[0]; ptrCurrOffset < &patchArr[numPtrs]; ptrCurrOffset++)
 	{
 		int offset = (*ptrCurrOffset >> 2) << 2;
-		*(int *)&origin[offset] = *(int *)&origin[offset] + (int)origin;
+		// NOTE: (int)origin truncates real pointers on 64-bit
+		// (Switch/AArch64). This slot itself stores a relative offset (not
+		// yet a real pointer) being fixed up into an absolute one relative
+		// to `origin` - route through (uintptr_t) instead of (int), which
+		// keeps the exact same values on 32-bit hosts.
+		*(int *)&origin[offset] = *(int *)&origin[offset] + (int)(uintptr_t)origin;
 #if defined(CTR_NATIVE) && defined(CTR_INTERNAL)
 		NativeCheckpoint_RegisterPointerSlot(&origin[offset]);
 #endif
@@ -210,7 +215,12 @@ struct LngFile
 // param_1 - Pointer to "cd position of bigfile"
 // param_2 - language index - 0 ja, 1 en, 2 en2, 3 fr, 4 de, 5 it, 6 es, 7 ne
 // NOTE(aalhendi): ASM-verified NTSC-U 926 0x80032b50-0x80032c24
-void LOAD_LangFile(int bigfilePtr, int lang)
+// NOTE: bigfilePtr changed from `int` to `struct BigHeader *` - callers
+// already cast a real pointer to (int) before passing it in; taking it as
+// its real pointer type end-to-end avoids truncating 64-bit pointers on
+// Switch/AArch64 (found via -fsyntax-only -m64 cross-check) with no
+// call-site behavior change on 32-bit hosts.
+void LOAD_LangFile(struct BigHeader *bigfilePtr, int lang)
 {
 	struct LngFile *lngFile;
 	u32 size;
@@ -227,7 +237,7 @@ void LOAD_LangFile(int bigfilePtr, int lang)
 
 	if (sdata->lngFile == 0)
 	{
-		struct BigHeader *bigfile = (struct BigHeader *)bigfilePtr;
+		struct BigHeader *bigfile = bigfilePtr;
 		struct BigEntry *entries = BIG_GETENTRY(bigfile);
 		u32 langBufferSize = (u32)sdata->langBufferSize;
 
@@ -248,21 +258,29 @@ void LOAD_LangFile(int bigfilePtr, int lang)
 
 	lngFile = sdata->lngFile;
 
-	lngFile = LOAD_ReadFile_ex((struct BigHeader *)bigfilePtr, LT_SETADDR, BI_LANGUAGEFILE + lang, lngFile, &size, NULL);
+	lngFile = LOAD_ReadFile_ex(bigfilePtr, LT_SETADDR, BI_LANGUAGEFILE + lang, lngFile, &size, NULL);
 	if (lngFile == NULL)
 	{
 		return;
 	}
 
 	numStrings = lngFile->numStrings;
-	strArray = (char **)((u32)lngFile + lngFile->offsetToPtrArr);
+	// NOTE: (u32)lngFile truncates real pointers on 64-bit (Switch/AArch64);
+	// route the offset through a byte pointer instead (identical addresses
+	// on 32-bit hosts).
+	strArray = (char **)((u8 *)lngFile + lngFile->offsetToPtrArr);
 
 	sdata->numLngStrings = numStrings;
 	sdata->lngStrings = strArray;
 
 	for (i = 0; i < numStrings; i++)
 	{
-		strArray[i] = (char *)((u32)strArray[i] + (u32)lngFile);
+		// NOTE: (u32) truncates real pointers on 64-bit (Switch/AArch64);
+		// route this relative-offset fixup through byte pointers instead
+		// (identical addresses on 32-bit hosts). strArray[i] holds a
+		// relative offset from `lngFile` at this point, not yet a real
+		// pointer, so the (uintptr_t) cast on the addend is intentional.
+		strArray[i] = (char *)lngFile + (uintptr_t)strArray[i];
 	}
 #if defined(CTR_NATIVE)
 	NativeAudio_SetVoiceLanguage(lang);

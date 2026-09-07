@@ -84,7 +84,10 @@ void LOAD_Callback_PatchMem(struct LoadQueueSlot *lqs)
 void LOAD_Callback_DriverModels(struct LoadQueueSlot *lqs)
 {
 	sdata->load_inProgress = 0;
-	sdata->ptrMPK = (int)lqs->ptrDestination;
+	// NOTE: ptrMPK is a checkpoint-tracked fixed 4-byte "retail 32-bit RAM
+	// address slot" (see platform/native_checkpoint.c); keep its type but
+	// round-trip through uintptr_t instead of casting the pointer directly.
+	sdata->ptrMPK = (int)(uintptr_t)lqs->ptrDestination;
 }
 
 // NOTE(aalhendi): ASM-verified NTSC-U 926 0x80031b14-0x80031b50.

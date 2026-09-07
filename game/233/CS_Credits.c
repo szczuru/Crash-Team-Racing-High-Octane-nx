@@ -95,7 +95,10 @@ void CS_Credits_AnimateCreditGhost(struct Instance *dst, struct Instance *src, i
 	dst->scale.z = scale;
 
 	dst->flags &= ~HIDE_MODEL;
-	if ((int)dst->model == 0)
+	// NOTE: was `(int)dst->model == 0` - a null-check via truncating cast is
+	// technically unsound on 64-bit (a non-null pointer's low 32 bits could
+	// theoretically be zero). Compare the pointer directly instead.
+	if (dst->model == NULL)
 	{
 		dst->flags |= HIDE_MODEL;
 	}
@@ -253,7 +256,12 @@ void CS_Credits_Init(void)
 
 	for (i = 0; i < creditsBSS.numStrings; i++)
 	{
-		ptrStrings[i] = (char *)((u32)ptrStrings[i] + (u32)creditsDst);
+		// NOTE: (u32) truncates real pointers on 64-bit (Switch/AArch64);
+		// route this relative-offset fixup through byte pointers instead
+		// (identical addresses on 32-bit hosts). ptrStrings[i] holds a
+		// relative offset from `creditsDst` at this point, not yet a real
+		// pointer, so the (uintptr_t) cast on the addend is intentional.
+		ptrStrings[i] = (char *)creditsDst + (uintptr_t)ptrStrings[i];
 	}
 
 	creditsObj->creditsPosY = CS_CREDITS_NAME_START_Y;

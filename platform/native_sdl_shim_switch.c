@@ -25,7 +25,21 @@
  */
 #ifdef __SWITCH__
 
+/* libnx <switch.h> defines `typedef struct Thread {...} Thread;` (the OS
+ * thread type) - the SAME bare name `Thread` that the game's own
+ * include/namespace_Proc.h uses for `struct Thread` (a completely different,
+ * game-side thread/process object). Because this whole project is one unity
+ * build (#include'd from main.c), both headers land in the same translation
+ * unit. Renaming libnx's typedef'd alias here (only for the <switch.h>
+ * include, undone right after) avoids that clash without touching
+ * namespace_Proc.h or any shared file. */
+/* Same clash for ThreadFunc: libnx's is `void (*)(void *)`, the game's own
+ * (include/namespace_Proc.h) is `void (*)(struct Thread *)`. */
+#define Thread LibnxOsThread
+#define ThreadFunc LibnxOsThreadFunc
 #include <switch.h>
+#undef Thread
+#undef ThreadFunc
 
 #include <SDL3/SDL.h>
 
@@ -246,7 +260,7 @@ void SDL_DestroyCondition(SDL_Condition *cond)
 
 struct SDL_Thread
 {
-	Thread thread;
+	LibnxOsThread thread;
 	SDL_ThreadFunction fn;
 	void *data;
 	int result;

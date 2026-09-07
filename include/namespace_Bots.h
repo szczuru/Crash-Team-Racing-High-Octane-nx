@@ -82,7 +82,9 @@ struct NavHeader
 	// 0x4C
 	// struct NavFrame frame[0];
 };
-#define NAVHEADER_GETFRAME(x)    ((struct NavFrame *)((u32)x + sizeof(struct NavHeader)))
+// NOTE: (u32)x truncates real pointers on 64-bit (Switch/AArch64); use a byte
+// pointer for the offset instead (identical codegen/addresses on 32-bit).
+#define NAVHEADER_GETFRAME(x)    ((struct NavFrame *)((u8 *)(x) + sizeof(struct NavHeader)))
 
 #define NAVFRAME_GETNEXTFRAME(x) (((struct NavFrame *)x) + 1)
 

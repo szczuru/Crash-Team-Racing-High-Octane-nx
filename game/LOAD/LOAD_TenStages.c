@@ -364,7 +364,11 @@ int LOAD_TenStages(struct GameTracker *gGT, int loadingStage, struct BigHeader *
 		// clear and reset
 		LibraryOfModels_Clear(gGT);
 
-		sdata->PLYROBJECTLIST = (int **)((u32)sdata->ptrMPK + 4);
+		// NOTE: ptrMPK is `int` and mpkIcons is `u32` (retail 32-bit RAM
+		// address slots) - route the round-trips through (uintptr_t) instead
+		// of a direct int<->pointer cast, avoiding -Wint-to-pointer-cast on
+		// 64-bit hosts.
+		sdata->PLYROBJECTLIST = (int **)((uintptr_t)sdata->ptrMPK + 4);
 		if (sdata->ptrMPK == 0)
 		{
 			sdata->PLYROBJECTLIST = 0;
@@ -376,11 +380,11 @@ int LOAD_TenStages(struct GameTracker *gGT, int loadingStage, struct BigHeader *
 		gGT->mpkIcons = 0;
 		if (sdata->ptrMPK != 0)
 		{
-			gGT->mpkIcons = *(int *)sdata->ptrMPK;
+			gGT->mpkIcons = *(int *)(uintptr_t)sdata->ptrMPK;
 
 			if (gGT->mpkIcons != 0)
 			{
-				DecalGlobal_Store(gGT, (struct LevTexLookup *)gGT->mpkIcons);
+				DecalGlobal_Store(gGT, (struct LevTexLookup *)(uintptr_t)gGT->mpkIcons);
 			}
 		}
 
@@ -528,17 +532,26 @@ int LOAD_TenStages(struct GameTracker *gGT, int loadingStage, struct BigHeader *
 		{
 			LibraryOfModels_Store(gGT, lev->numModels, lev->ptrModelsPtrArray);
 
-			gGT->ptrCircle = (u32)DecalGlobal_FindInLEV(lev, rdata.s_circle);
-			gGT->ptrClod = (u32)DecalGlobal_FindInLEV(lev, rdata.s_clod);
-			gGT->ptrDustpuff = (u32)DecalGlobal_FindInLEV(lev, rdata.s_dustpuff);
-			gGT->ptrSmoking = (u32)DecalGlobal_FindInLEV(lev, rdata.s_smokering); // "Smoke Ring"
-			gGT->ptrSparkle = (u32)DecalGlobal_FindInLEV(lev, rdata.s_sparkle);
+			// NOTE: ptrCircle/ptrClod/ptrDustpuff/ptrSmoking/ptrSparkle are
+			// `u32` (retail 32-bit RAM address slots) - route the round-trip
+			// through (uintptr_t) instead of a direct pointer<->int cast,
+			// avoiding -Wpointer-to-int-cast on 64-bit hosts.
+			gGT->ptrCircle = (u32)(uintptr_t)DecalGlobal_FindInLEV(lev, rdata.s_circle);
+			gGT->ptrClod = (u32)(uintptr_t)DecalGlobal_FindInLEV(lev, rdata.s_clod);
+			gGT->ptrDustpuff = (u32)(uintptr_t)DecalGlobal_FindInLEV(lev, rdata.s_dustpuff);
+			gGT->ptrSmoking = (u32)(uintptr_t)DecalGlobal_FindInLEV(lev, rdata.s_smokering); // "Smoke Ring"
+			gGT->ptrSparkle = (u32)(uintptr_t)DecalGlobal_FindInLEV(lev, rdata.s_sparkle);
 		}
 
 		// if linked list of icons exists
 		if (gGT->mpkIcons != 0)
 		{
-			u32 *mpkIconList = (u32 *)*(u32 *)(gGT->mpkIcons + 4);
+			// NOTE: mpkIcons is `u32` (retail 32-bit RAM address slot) -
+			// route the round-trips through (uintptr_t) instead of a direct
+			// int<->pointer cast. The outer cast rewraps the *value* read
+			// back out of memory (itself a retail 32-bit address), so it
+			// also goes through (uintptr_t) rather than truncating.
+			u32 *mpkIconList = (u32 *)(uintptr_t)*(u32 *)((uintptr_t)gGT->mpkIcons + 4);
 
 			gGT->trafficLightIcon[0] = (struct Icon *)DecalGlobal_FindInMPK(mpkIconList, rdata.s_lightredoff);
 			gGT->trafficLightIcon[1] = (struct Icon *)DecalGlobal_FindInMPK(mpkIconList, rdata.s_lightredon);

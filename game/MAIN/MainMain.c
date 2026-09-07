@@ -728,11 +728,11 @@ void StateZero()
 #ifdef CTR_NATIVE
 	// Load PAL English on native so the boot language selector can use the
 	// localized language-name strings shared by the PAL language files.
-	LOAD_LangFile((int)sdata->ptrBigfile1, cfg_language);
+	LOAD_LangFile(sdata->ptrBigfile1, cfg_language);
 #else
 	// English=1
 	// PAL SCES02105 calls it multiple times
-	LOAD_LangFile((int)sdata->ptrBigfile1, 1);
+	LOAD_LangFile(sdata->ptrBigfile1, 1);
 #endif
 	GAMEPROG_NewGame_OnBoot();
 	gGT->overlayIndex_null_notUsed = 0;

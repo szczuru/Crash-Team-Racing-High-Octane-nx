@@ -5,25 +5,31 @@
 void MEMPACK_Init(int ramSize)
 {
 	(void)ramSize;
-	u32 startPtr;
-	s32 packSize;
 
 #if defined(CTR_NATIVE)
 
+	s32 packSize;
 	const struct PlatformMempackArena *arena = Platform_InitMempackArena();
 
-	startPtr = (u32)arena->start;
+	// NOTE: keep the arena start as a real pointer end-to-end instead of
+	// round-tripping through (u32) - that cast truncated real 64-bit
+	// pointers on Switch (AArch64/LP64). On 32-bit hosts (PC/Vita) this is a
+	// no-op change (the pointer already fit in 32 bits).
+	void *startAddr = (void *)arena->start;
 	packSize = arena->size;
 
-	printf("[CTR] MEMPACK native backing: base=%08x\n", (u32)arena->base);
+	printf("[CTR] MEMPACK native backing: base=%p\n", arena->base);
 
-	MEMPACK_NewPack((void *)startPtr, packSize);
-	sdata->PtrMempack->endOfAllocator = (void *)(startPtr + packSize);
+	MEMPACK_NewPack(startAddr, packSize);
+	sdata->PtrMempack->endOfAllocator = (u8 *)startAddr + packSize;
 	sdata->PtrMempack->endOfMemory = arena->endOfMemory;
 
-	printf("[CTR] MEMPACK native arena: start=%08x size=%08x end=%08x\n", startPtr, packSize, (u32)sdata->PtrMempack->endOfAllocator);
+	printf("[CTR] MEMPACK native arena: start=%p size=%08x end=%p\n", startAddr, packSize, sdata->PtrMempack->endOfAllocator);
 
 #else
+
+	u32 startPtr;
+	s32 packSize;
 
 	maxOverlayEnd = (u32)AH_EndOfFile;
 	if (maxOverlayEnd < (u32)RB_EndOfFile)
@@ -59,7 +65,10 @@ void MEMPACK_SwapPacks(int index)
 void MEMPACK_NewPack(void *start, int size)
 {
 	struct Mempack *ptrMempack = sdata->PtrMempack;
-	void *end = (void *)((u32)start + size);
+	// NOTE: (u32)start truncates real pointers on 64-bit (Switch/AArch64);
+	// route the offset through a byte pointer instead (identical addresses on
+	// 32-bit platforms).
+	void *end = (void *)((u8 *)start + size);
 
 	ptrMempack->packSize = size;
 	ptrMempack->start = start;
@@ -75,7 +84,10 @@ int MEMPACK_GetFreeBytes()
 {
 	struct Mempack *ptrMempack = sdata->PtrMempack;
 
-	return (u32)ptrMempack->lastFreeByte - (u32)ptrMempack->firstFreeByte;
+	// NOTE: (u32) casts here happened to be safe even on 64-bit (both pointers
+	// share the same upper bits within the same backing buffer), but real
+	// pointer subtraction is clearer and portable to any address.
+	return (int)((u8 *)ptrMempack->lastFreeByte - (u8 *)ptrMempack->firstFreeByte);
 }
 
 
@@ -95,10 +107,12 @@ void *MEMPACK_AllocMem(int allocSize)
 	s32 newAllocSize = MEMPACK_ALIGN_SIZE(allocSize);
 	ptrMempack->sizeOfPrevAllocation = newAllocSize;
 
-	s32 firstFreeByte = (s32)ptrMempack->firstFreeByte;
-	ptrMempack->firstFreeByte = (void *)(firstFreeByte + newAllocSize);
+	// NOTE: (s32) truncates real pointers on 64-bit (Switch/AArch64); keep the
+	// bump-allocator pointer arithmetic in pointer form instead.
+	void *firstFreeByte = ptrMempack->firstFreeByte;
+	ptrMempack->firstFreeByte = (u8 *)firstFreeByte + newAllocSize;
 
-	return (void *)firstFreeByte;
+	return firstFreeByte;
 }
 
 
@@ -112,10 +126,12 @@ void *MEMPACK_AllocHighMem(int allocSize)
 	allocSize = MEMPACK_ALIGN_SIZE(allocSize);
 	sdata->PtrMempack->sizeOfPrevAllocation = allocSize;
 
-	s32 newLastFreeByte = (s32)sdata->PtrMempack->lastFreeByte - allocSize;
-	sdata->PtrMempack->lastFreeByte = (void *)newLastFreeByte;
+	// NOTE: (s32) truncates real pointers on 64-bit (Switch/AArch64); keep the
+	// bump-allocator pointer arithmetic in pointer form instead.
+	void *newLastFreeByte = (u8 *)sdata->PtrMempack->lastFreeByte - allocSize;
+	sdata->PtrMempack->lastFreeByte = newLastFreeByte;
 
-	return (void *)newLastFreeByte;
+	return newLastFreeByte;
 }
 
 
@@ -132,7 +148,9 @@ void *MEMPACK_ReallocMem(int allocSize)
 	struct Mempack *ptrMempack = sdata->PtrMempack;
 
 	s32 newAllocSize = MEMPACK_ALIGN_SIZE(allocSize);
-	ptrMempack->firstFreeByte = (void *)((s32)ptrMempack->firstFreeByte - ptrMempack->sizeOfPrevAllocation + newAllocSize);
+	// NOTE: (s32) truncates real pointers on 64-bit (Switch/AArch64); keep the
+	// bump-allocator pointer arithmetic in pointer form instead.
+	ptrMempack->firstFreeByte = (u8 *)ptrMempack->firstFreeByte - ptrMempack->sizeOfPrevAllocation + newAllocSize;
 	ptrMempack->sizeOfPrevAllocation = newAllocSize;
 
 	return ptrMempack->firstFreeByte;

@@ -88,6 +88,8 @@ int Platform_GetMempackBackingSize(void)
 
 void Platform_RepairResidentPointers(s32 activeMempackIndex)
 {
+	u32 voiceSetIndex;
+
 	if ((activeMempackIndex < 0) || (activeMempackIndex >= 4))
 	{
 		activeMempackIndex = 0;
@@ -103,4 +105,18 @@ void Platform_RepairResidentPointers(s32 activeMempackIndex)
 	sdata_static.PtrMempack = &sdata_static.mempack[activeMempackIndex];
 	sdata_static.ptrToMemcardBuffer1 = &sdata_static.memcardBytes[0];
 	sdata_static.ptrToMemcardBuffer2 = &sdata_static.memcardBytes[0];
+
+	// NOTE: data.voiceSetPtr[] used to be a compile-time static initializer
+	// (address of each voiceData[i].voiceSet[0] cast to (int)), which is not
+	// a valid constant expression once `data` is addressed with real 64-bit
+	// pointers (Switch/AArch64). Repair it here instead, at the same point
+	// the other resident-pointer aliases above are repaired. Consumed only by
+	// the checkpoint/relocation system (platform/native_checkpoint.c); stored
+	// as a 32-bit slot (matches retail layout / checkpoint region sizing) via
+	// NativeCheckpoint_WriteU32Slot-equivalent truncation, which is safe here
+	// because this field is itself relocated (not dereferenced) by that code.
+	for (voiceSetIndex = 0; voiceSetIndex < len(data.voiceSetPtr); voiceSetIndex++)
+	{
+		data.voiceSetPtr[voiceSetIndex] = (int)(u32)(uintptr_t)&data.voiceData[voiceSetIndex].voiceSet[0];
+	}
 }

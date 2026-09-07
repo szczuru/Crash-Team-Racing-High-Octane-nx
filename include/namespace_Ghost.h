@@ -174,6 +174,8 @@ struct GhostHeader
 	// char recordBuffer[0]; // yes, zero bytes
 };
 
-#define GHOSTHEADER_GETRECORDBUFFER(x) (char *)((u32)x + sizeof(struct GhostHeader))
+// NOTE: (u32)x truncates real pointers on 64-bit (Switch/AArch64); use a byte
+// pointer for the offset instead (identical codegen/addresses on 32-bit).
+#define GHOSTHEADER_GETRECORDBUFFER(x) (char *)((u8 *)(x) + sizeof(struct GhostHeader))
 
 #endif

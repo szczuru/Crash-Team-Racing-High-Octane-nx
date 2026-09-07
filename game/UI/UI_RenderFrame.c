@@ -809,7 +809,7 @@ void UI_RenderFrame_Racing()
 				primMemCurr = backBuffer->primMem.cursor;
 				TurboCounterBar = 0;
 
-				if ((int)primMemCurr <= (int)backBuffer->primMem.guardEnd)
+				if ((void *)primMemCurr <= (void *)backBuffer->primMem.guardEnd)
 				{
 					backBuffer->primMem.cursor = primMemCurr + 9;
 					TurboCounterBar = (POLY_G4 *)primMemCurr;

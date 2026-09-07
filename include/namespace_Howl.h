@@ -427,7 +427,9 @@ struct CseqSongHeader
 	// each seq is an array of SongNote
 	// s16 seqOffsetArr[0];
 };
-#define SONGHEADER_GETSEQOFFARR(x) ((u32)x + sizeof(struct CseqSongHeader))
+// NOTE: (u32)x truncates real pointers on 64-bit (Switch/AArch64); use a byte
+// pointer for the offset instead (identical codegen/addresses on 32-bit).
+#define SONGHEADER_GETSEQOFFARR(x) ((u8 *)(x) + sizeof(struct CseqSongHeader))
 
 // right before first note
 struct SongNoteHeader
@@ -439,7 +441,9 @@ struct SongNoteHeader
 
 	// char notes[0];
 };
-#define NOTEHEADER_GETNOTES(x) ((u32)x + sizeof(struct SongNoteHeader))
+// NOTE: (u32)x truncates real pointers on 64-bit (Switch/AArch64); use a byte
+// pointer for the offset instead (identical codegen/addresses on 32-bit).
+#define NOTEHEADER_GETNOTES(x) ((u8 *)(x) + sizeof(struct SongNoteHeader))
 
 struct SongSeq
 {
@@ -565,7 +569,9 @@ struct SampleBlockHeader
 
 	// s16 spuIndexArr[0];
 };
-#define SBHEADER_GETARR(x) (s16 *)((u32)x + sizeof(struct SampleBlockHeader))
+// NOTE: (u32)x truncates real pointers on 64-bit (Switch/AArch64); use a byte
+// pointer for the offset instead (identical codegen/addresses on 32-bit).
+#define SBHEADER_GETARR(x) (s16 *)((u8 *)(x) + sizeof(struct SampleBlockHeader))
 
 struct SpuAddrEntry
 {

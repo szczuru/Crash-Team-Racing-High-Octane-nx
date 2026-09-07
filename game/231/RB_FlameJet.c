@@ -273,7 +273,11 @@ void RB_FlameJet_Particles(struct Instance *inst, struct FlameJet *fjObj)
 	}
 #endif
 
-	particle2 = Particle_Init(0, (struct IconGroup *)gGT->ptrSparkle, &emSet_fjHeat[0]);
+	// NOTE: ptrSparkle is a checkpoint-tracked fixed 4-byte "retail 32-bit
+	// RAM address slot" (see platform/native_checkpoint.c); round-trip
+	// through uintptr_t instead of casting the u32 value directly to a
+	// pointer, which truncates on 64-bit targets.
+	particle2 = Particle_Init(0, (struct IconGroup *)(uintptr_t)gGT->ptrSparkle, &emSet_fjHeat[0]);
 
 	// heat particle
 	if (particle2 != 0)

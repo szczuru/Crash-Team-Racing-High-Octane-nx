@@ -194,7 +194,11 @@ void NormalColor3(SVECTOR *v0, SVECTOR *v1, SVECTOR *v2, CVECTOR *v3, CVECTOR *v
 
 void NormalColorDpq(SVECTOR *v0, CVECTOR *v1, int p, CVECTOR *v2)
 {
-	gte_NormalColorDpq(v0, v1, p, v2);
+	// NOTE: `p` holds a retail 32-bit RAM address (per the PS1 libgte ABI in
+	// psx/libgte.h); gte_lddp() dereferences it as a pointer, so round-trip
+	// through uintptr_t here instead of letting the macro cast the bare int
+	// straight to a pointer, which truncates on 64-bit targets.
+	gte_NormalColorDpq(v0, v1, (uintptr_t)p, v2);
 }
 
 void NormalColorCol(SVECTOR *v0, CVECTOR *v1, CVECTOR *v2)
@@ -214,7 +218,11 @@ void DpqColor(CVECTOR *v0, int p, CVECTOR *v1)
 
 void ColorDpq(VECTOR *v0, CVECTOR *v1, int p, CVECTOR *v2)
 {
-	gte_ColorDpq(v0, v1, p, v2);
+	// NOTE: `p` holds a retail 32-bit RAM address (per the PS1 libgte ABI in
+	// psx/libgte.h); gte_lddp() dereferences it as a pointer, so round-trip
+	// through uintptr_t here instead of letting the macro cast the bare int
+	// straight to a pointer, which truncates on 64-bit targets.
+	gte_ColorDpq(v0, v1, (uintptr_t)p, v2);
 }
 
 void ColorCol(VECTOR *v0, CVECTOR *v1, CVECTOR *v2)

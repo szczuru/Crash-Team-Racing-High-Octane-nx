@@ -181,8 +181,12 @@ struct Instance *INSTANCE_BirthWithThread(int modelID, const char *name, int poo
 struct Instance *INSTANCE_BirthWithThread_Stack(int *spArr)
 {
 	// spArr = array on $sp (stack pointer)
-
-	return INSTANCE_BirthWithThread(spArr[0], (char *)spArr[1], spArr[2], spArr[3], (void *)spArr[4], spArr[5], (struct Thread *)spArr[6]);
+	// NOTE: each slot is a packed 32-bit retail value (emulating a MIPS
+	// stack-arg word), so casting straight to a pointer type truncates real
+	// 64-bit pointers on Switch/AArch64. Route through (uintptr_t) instead
+	// of casting the `int` directly to a pointer type.
+	return INSTANCE_BirthWithThread(spArr[0], (char *)(uintptr_t)spArr[1], spArr[2], spArr[3], (void *)(uintptr_t)spArr[4], spArr[5],
+	                                 (struct Thread *)(uintptr_t)spArr[6]);
 }
 
 
@@ -228,10 +232,13 @@ void INSTANCE_LevInitAll(struct InstDef *levInstDef, int numInst)
 
 		// pointer to instance in pool,
 		// add 8 bytes to skip Prev and Next
-		dst = (int *)((int)inst + 8);
+		// NOTE: (int)ptr truncates real pointers on 64-bit (Switch/AArch64);
+		// route the offset through a byte pointer instead (identical
+		// addresses on 32-bit hosts).
+		dst = (int *)((u8 *)inst + 8);
 
 		// copy InstDef data from LEV to instance pool
-		while (src != (int *)((int)levInstDef + 0x20))
+		while (src != (int *)((u8 *)levInstDef + 0x20))
 		{
 			dst[0] = src[0];
 			dst[1] = src[1];

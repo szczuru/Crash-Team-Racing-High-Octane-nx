@@ -60,8 +60,12 @@ int LOAD_HowlSectorChainStart(CdlFILE *cdlFileHWL, void *ptrDestination, int fir
 	}
 
 	// backup, so chain can use it later
-	sdata->howlChainParams[0] = (int)cdlFileHWL;
-	sdata->howlChainParams[1] = (int)ptrDestination;
+	// NOTE: howlChainParams[] slots are packed 32-bit retail addresses -
+	// route the pointer round-trips through (uintptr_t) instead of casting
+	// directly to `int`, avoiding truncation of real 64-bit pointers on
+	// Switch/AArch64.
+	sdata->howlChainParams[0] = (int)(uintptr_t)cdlFileHWL;
+	sdata->howlChainParams[1] = (int)(uintptr_t)ptrDestination;
 	sdata->howlChainParams[2] = (int)firstSector;
 	sdata->howlChainParams[3] = (int)numSector;
 
@@ -94,7 +98,7 @@ int LOAD_HowlSectorChainEnd()
 
 	if (howlChainState == -1)
 	{
-		LOAD_HowlSectorChainStart((CdlFILE *)howlChainParams[0], (void *)howlChainParams[1], howlChainParams[2], howlChainParams[3]);
+		LOAD_HowlSectorChainStart((CdlFILE *)(uintptr_t)howlChainParams[0], (void *)(uintptr_t)howlChainParams[1], howlChainParams[2], howlChainParams[3]);
 
 		return 0;
 	}
