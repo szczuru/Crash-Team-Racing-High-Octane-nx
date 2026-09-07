@@ -410,6 +410,11 @@ global_variable GLuint s_glVramFramebuffer;
 
 internal int NativeRenderer_InitialiseGLContext(char *windowName, int fullscreen)
 {
+#if defined(__SWITCH__)
+	(void)windowName;
+	(void)fullscreen;
+	return NativeRendererSwitch_InitContext() ? 1 : 0;
+#else
 	SDL_WindowFlags windowFlags = SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE;
 #ifndef __vita__
 	windowFlags |= SDL_WINDOW_HIGH_PIXEL_DENSITY;
