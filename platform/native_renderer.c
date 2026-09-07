@@ -15,6 +15,7 @@
 #include "platform/native_log.h"
 #include "platform/native_perf.h"
 #include "platform/native_renderer.h"
+#include "platform/native_renderer_switch.h"
 
 #include <assert.h>
 #include <string.h>
@@ -352,7 +353,6 @@ int g_windowWidth = 0;
 int g_windowHeight = 0;
 #ifndef __vita__
 extern int gNativeAntiAliasingEnabled;
-extern int gNativeDitheringEnabled;
 #endif
 
 global_variable int s_presentAspectW = 4;
@@ -411,6 +411,9 @@ global_variable GLuint s_glVramFramebuffer;
 internal int NativeRenderer_InitialiseGLContext(char *windowName, int fullscreen)
 {
 #if defined(__SWITCH__)
+	// Switch nie ma backendu wideo SDL3 (nie istnieje oficjalnie ani jako
+	// paczka devkitPro) - kontekst EGL/OpenGL tworzy w całości
+	// native_renderer_switch.c przez nwindow + EGL.
 	(void)windowName;
 	(void)fullscreen;
 	return NativeRendererSwitch_InitContext() ? 1 : 0;
@@ -460,6 +463,7 @@ internal int NativeRenderer_InitialiseGLContext(char *windowName, int fullscreen
 	}
 
 	return 1;
+#endif
 }
 
 internal int NativeRenderer_InitialiseGLExt(void)
@@ -491,19 +495,27 @@ int NativeRenderer_InitialiseRender(char *windowName, int width, int height, int
 	g_windowHeight = height;
 	NativeRenderer_SetPresentationAspect(width, height);
 
+#if !defined(__SWITCH__)
 	// Due to debugging in fullscreen
 	SDL_SetHint(SDL_HINT_WINDOW_ALLOW_TOPMOST, "0");
 	SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
 
 	SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 1);
+#endif
+	// Switch: powyższe SDL hinty/atrybuty nie mają odpowiednika (nie ma
+	// SDL video dla Switcha) - stencil size 8 jest już zażądany wprost w
+	// eglChooseConfig wewnątrz native_renderer_switch.c, double buffer jest
+	// domyślne dla EGL window surface.
 
 	if (!NativeRenderer_InitialiseGLContext(windowName, fullscreen))
 	{
 		NATIVE_RENDERER_ERROR("%s\n", "Failed to Initialise GL Context!");
 		return 0;
 	}
-#ifndef __vita__
+#if !defined(__vita__) && !defined(__SWITCH__)
 	SDL_GetWindowSizeInPixels(g_window, &g_windowWidth, &g_windowHeight);
+#elif defined(__SWITCH__)
+	NativeRendererSwitch_GetFramebufferSize(&g_windowWidth, &g_windowHeight);
 #endif
 
 	if (!NativeRenderer_InitialiseGLExt())
@@ -1021,7 +1033,6 @@ typedef struct
 	GLint lutLoc;
 #ifndef __vita__
 	GLint psxSemiTransPassLoc;
-	GLint psxDitherEnabledLoc;
 #endif
 	GLint psxDrawMaskSetLoc;
 	GLint psxTextureOutputStpLoc;
@@ -1077,7 +1088,6 @@ GLint u_bilinearFilterLoc;
 GLint u_texelSizeLoc;
 #ifndef __vita__
 GLint u_psxSemiTransPassLoc;
-GLint u_psxDitherEnabledLoc;
 #endif
 GLint u_psxDrawMaskSetLoc;
 GLint u_psxTextureOutputStpLoc;
@@ -1224,7 +1234,6 @@ internal void NativeRenderer_DestroyPSXShaders(void)
 #define GPU_DITHERING "\tvec4 dither(vec4 color) { return color; }\n"
 #else
 #define GPU_DITHERING                                             \
-	"\tuniform int psxDitherEnabled;\n"                            \
 	"	const mat4 c_dither = mat4(\n"                              \
 	"		-4.0,  +0.0,  -3.0,  +1.0,\n"                              \
 	"		+2.0,  -2.0,  +3.0,  -1.0,\n"                              \
@@ -1232,7 +1241,7 @@ internal void NativeRenderer_DestroyPSXShaders(void)
 	"		+3.0,  -1.0,  +2.0,  -2.0) / 255.0;\n"                     \
 	"	vec4 dither(vec4 color) {\n"                                \
 	"		ivec2 dc = ivec2(mod(floor(v_ditherCoord), 4.0));\n"       \
-	"		color.xyz += vec3(c_dither[dc.x][dc.y] * v_texcoord.w * float(psxDitherEnabled));\n" \
+	"		color.xyz += vec3(c_dither[dc.x][dc.y] * v_texcoord.w);\n" \
 	"		return color;\n"                                           \
 	"	}\n"
 #endif
@@ -1688,7 +1697,6 @@ internal void NativeRenderer_CompilePSXShader(GTEShader *sh, const char *source,
 	sh->lutLoc = glGetUniformLocation(sh->shader, "s_rgLut");
 #ifndef __vita__
 	sh->psxSemiTransPassLoc = glGetUniformLocation(sh->shader, "psxSemiTransPass");
-	sh->psxDitherEnabledLoc = glGetUniformLocation(sh->shader, "psxDitherEnabled");
 #endif
 	sh->psxDrawMaskSetLoc = glGetUniformLocation(sh->shader, "psxDrawMaskSet");
 	sh->psxTextureOutputStpLoc = glGetUniformLocation(sh->shader, "psxTextureOutputStp");
@@ -2272,7 +2280,6 @@ void NativeRenderer_SetTexture(TextureID texture, TexFormat texFormat, int semiT
 	u_texelSizeLoc = texFormat == TF_32_BIT_RGBA ? shader->texelSizeLoc : -1;
 #ifndef __vita__
 	u_psxSemiTransPassLoc = shader->psxSemiTransPassLoc;
-	u_psxDitherEnabledLoc = shader->psxDitherEnabledLoc;
 #endif
 	u_psxDrawMaskSetLoc = shader->psxDrawMaskSetLoc;
 	u_psxTextureOutputStpLoc = shader->psxTextureOutputStpLoc;
@@ -2294,10 +2301,6 @@ void NativeRenderer_SetTexture(TextureID texture, TexFormat texFormat, int semiT
 	if (u_psxSemiTransPassLoc >= 0)
 	{
 		glUniform1i(u_psxSemiTransPassLoc, semiTransPass);
-	}
-	if (u_psxDitherEnabledLoc >= 0)
-	{
-		glUniform1i(u_psxDitherEnabledLoc, gNativeDitheringEnabled != 0);
 	}
 #endif
 
@@ -3665,12 +3668,8 @@ internal void NativeRenderer_DrawGhostReplayImageRegion(TextureID texture, int o
 void NativeRenderer_DrawGhostReplayOverlay(void)
 {
 	u32 buttonsHeld;
-	u8 stickLX;
-	u8 stickLY;
-	u8 stickRX;
-	u8 stickRY;
 
-	if (!NativeGhostInput_GetReplayOverlayState(&buttonsHeld, &stickLX, &stickLY, &stickRX, &stickRY) || !NativeRenderer_LoadGhostReplayOverlay())
+	if (!NativeGhostInput_GetReplayOverlayState(&buttonsHeld) || !NativeRenderer_LoadGhostReplayOverlay())
 	{
 		return;
 	}
@@ -3711,14 +3710,6 @@ void NativeRenderer_DrawGhostReplayOverlay(void)
 	if ((buttonsHeld & BTN_SQUARE) != 0)   NativeRenderer_DrawGhostReplayHighlight(overlayX, overlayY, overlayW, overlayH, 260, 51, 14, 14);
 	if ((buttonsHeld & (BTN_L1 | BTN_L2)) != 0) NativeRenderer_DrawGhostReplayImageRegion(s_ghostReplayShoulderTexture[0], overlayX, overlayY, overlayW, overlayH, 16, 0, 48, 16);
 	if ((buttonsHeld & (BTN_R1 | BTN_R2)) != 0) NativeRenderer_DrawGhostReplayImageRegion(s_ghostReplayShoulderTexture[1], overlayX, overlayY, overlayW, overlayH, 237, 0, 48, 16);
-
-	const int stickTravel = 8;
-	const int leftStickX = 38 + (((int)stickLX - 128) * stickTravel) / 127;
-	const int leftStickY = 90 + (((int)stickLY - 128) * stickTravel) / 127;
-	const int rightStickX = 262 + (((int)stickRX - 128) * stickTravel) / 127;
-	const int rightStickY = 90 + (((int)stickRY - 128) * stickTravel) / 127;
-	NativeRenderer_DrawGhostReplayHighlight(overlayX, overlayY, overlayW, overlayH, leftStickX, leftStickY, 8, 8);
-	NativeRenderer_DrawGhostReplayHighlight(overlayX, overlayY, overlayW, overlayH, rightStickX, rightStickY, 8, 8);
 
 	if (previousStencilEnabled)
 	{
@@ -3793,6 +3784,8 @@ void NativeRenderer_SwapWindow(void)
 	{
 		SDL_GL_SwapWindow(g_window);
 	}
+#elif defined(__SWITCH__)
+	NativeRendererSwitch_SwapBuffers();
 #else
 	SDL_GL_SwapWindow(g_window);
 #endif
