@@ -66,10 +66,18 @@
 #define SR_ISC            0x00010000 /* Isolate data cache */
 
 #define SR_MM_MODE        0x00010000 /* lwl/swl/etc become scache/etc */
+// NOTE: lcache/scache/flush/inval are raw MIPS-assembly-mnemonic aliases
+// meant only for hand-written PS1 asm; they are never referenced as
+// identifiers anywhere in the native game/platform code. On Switch they
+// collide with libnx headers that use `inval` as a real parameter name
+// (switch/services/applet.h, hiddbg.h, ns.h), so skip defining them there.
+// PC/Vita builds are unaffected (nothing in this codebase uses these names).
+#if !defined(__SWITCH__)
 #define lcache            lwl
 #define scache            swl
 #define flush             lwr $0,
 #define inval             swr $0,
+#endif
 
 /*
  * Interrupt enable bits

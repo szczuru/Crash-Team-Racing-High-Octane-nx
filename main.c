@@ -358,12 +358,26 @@ void *real_main(void *_argv)
 int main(int argc, char *argv[])
 {
 #endif
+// NOTE: this shared function body is used both by `int main(...)` (PC) and
+// by `void *real_main(...)` (Vita/Switch, run on a dedicated thread with a
+// bigger stack; see pthread_create() above). Returning a plain int/s32
+// through a `void *`-returning function is an implicit int-to-pointer
+// conversion; some toolchains only warn on this (older vitasdk GCC), but
+// newer ones (devkitA64's aarch64-none-elf-gcc) reject it as a hard error.
+// This macro selects the correct return statement per platform without
+// changing behavior anywhere: PC keeps returning the int directly, while
+// Vita/Switch route it through an explicit (void *)(intptr_t) cast.
+#if defined(__vita__) || defined(__SWITCH__)
+#define NATIVE_MAIN_RETURN(x) return (void *)(intptr_t)(x)
+#else
+#define NATIVE_MAIN_RETURN(x) return (x)
+#endif
 	for (int argIndex = 1; argIndex < argc; argIndex++)
 	{
 		if (NativeArg_IsVersion(argv[argIndex]))
 		{
 			printf("CTR Native %s (%s)\n", CTR_NATIVE_VERSION, CTR_NATIVE_BUILD_ID);
-			return 0;
+			NATIVE_MAIN_RETURN(0);
 		}
 	}
 
@@ -385,7 +399,7 @@ int main(int argc, char *argv[])
 	if (!NativeAssets_Init(sdlBasePath))
 	{
 		fprintf(stderr, "[CTR Native] Failed to initialize asset paths.\n");
-		return NativeConsole_Return(1);
+		NATIVE_MAIN_RETURN(NativeConsole_Return(1));
 	}
 
 	printf("[CTR Native] Version: %s (%s)\n", CTR_NATIVE_VERSION, CTR_NATIVE_BUILD_ID);
@@ -397,7 +411,7 @@ int main(int argc, char *argv[])
 	if (chdir(NativeAssets_GetBaseDir()) != 0)
 	{
 		fprintf(stderr, "[CTR Native] Failed to enter base directory: %s\n", NativeAssets_GetBaseDir());
-		return NativeConsole_Return(1);
+		NATIVE_MAIN_RETURN(NativeConsole_Return(1));
 	}
 
 #ifndef __vita__
@@ -406,13 +420,13 @@ int main(int argc, char *argv[])
 
 	if (!NativeAssets_Validate())
 	{
-		return NativeConsole_Return(1);
+		NATIVE_MAIN_RETURN(NativeConsole_Return(1));
 	}
 
 #if defined(CTR_INTERNAL)
 	if (NativeReplayScheduler_PrepareReportFromArgs(argc, argv) != 0)
 	{
-		return NativeConsole_Return(1);
+		NATIVE_MAIN_RETURN(NativeConsole_Return(1));
 	}
 #endif
 
@@ -435,7 +449,7 @@ int main(int argc, char *argv[])
 	{
 		Platform_LogFlush();
 		Platform_Shutdown();
-		return NativeConsole_Return(1);
+		NATIVE_MAIN_RETURN(NativeConsole_Return(1));
 	}
 #endif
 
@@ -447,7 +461,7 @@ int main(int argc, char *argv[])
 	{
 		Platform_LogFlush();
 		Platform_Shutdown();
-		return NativeConsole_Return(1);
+		NATIVE_MAIN_RETURN(NativeConsole_Return(1));
 	}
 #else
 	(void)argc;
@@ -457,5 +471,6 @@ int main(int argc, char *argv[])
 	const int result = CTR_Main();
 
 	Platform_Shutdown();
-	return NativeConsole_Return(result);
+	NATIVE_MAIN_RETURN(NativeConsole_Return(result));
 }
+#undef NATIVE_MAIN_RETURN
