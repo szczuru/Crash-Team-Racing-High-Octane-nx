@@ -32,6 +32,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "platform/native_glad.h"
+#include "platform/native_renderer_switch.h"
 
 #ifdef __vita__
 void *vglGetProcAddress(const char *name);
@@ -149,6 +150,8 @@ internal void *get_proc(const char *namez)
 	void *result = NULL;
 #ifdef __vita__
 	result = vglGetProcAddress(namez);
+#elif defined(__SWITCH__)
+	result = NativeRendererSwitch_GetProcAddress(namez);
 #else
 	if (libGL == NULL)
 	{
