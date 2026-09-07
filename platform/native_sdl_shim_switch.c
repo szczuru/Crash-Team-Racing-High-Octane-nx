@@ -506,11 +506,45 @@ bool SDL_GL_ExtensionSupported(const char *extension)
 	return false;
 }
 
+bool SDL_GL_SetAttribute(SDL_GLAttr attr, int value)
+{
+	/* Bezwarunkowo wołane z platform/native_renderer.c przed rozgałęzieniem
+	 * na __SWITCH__ (NativeRenderer_InitialiseRender ustawia DOUBLEBUFFER /
+	 * STENCIL_SIZE zanim wejdzie do NativeRenderer_InitialiseGLContext, które
+	 * na Switchu i tak od razu przechodzi do NativeRendererSwitch_InitContext
+	 * bez tworzenia SDL_Window/kontekstu GL przez SDL). Kontekst EGL/GL na
+	 * Switchu tworzy native_renderer_switch.c niezależnie od tych atrybutów -
+	 * bezpieczny no-op. */
+	(void)attr;
+	(void)value;
+	return true;
+}
+
 bool SDL_GL_SetSwapInterval(int interval)
 {
 	/* vsync ustawiany przez eglSwapInterval w native_renderer_switch.c. */
 	(void)interval;
 	return true;
+}
+
+bool SDL_GetWindowSizeInPixels(SDL_Window *window, int *w, int *h)
+{
+	/* g_window jest zawsze NULL na Switchu (SDL_CreateWindow nigdy nie jest
+	 * wołane - patrz native_renderer.c: #if defined(__SWITCH__) pomija całą
+	 * ścieżkę SDL_CreateWindow). Wołające miejsca (platform/native_platform.c:
+	 * Platform_HandleWindowResize/Platform_SetBorderless) już sprawdzają
+	 * `g_window != NULL` przed użyciem wyniku, więc zwrócenie false tu jest
+	 * bezpieczne i zgodne z resztą shimu (np. SDL_PollEvent). */
+	(void)window;
+	if (w != NULL)
+	{
+		*w = 0;
+	}
+	if (h != NULL)
+	{
+		*h = 0;
+	}
+	return false;
 }
 
 /* ========================================================================== */
