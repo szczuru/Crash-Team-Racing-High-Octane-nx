@@ -114,6 +114,15 @@ int gNativeRelicRaceResultTier = -1;
 #include "platform/native_state.c"
 #include "platform/native_str.c"
 
+/* Nintendo Switch: własne shimy zamiast prawdziwego SDL3 (brak backendu SDL3
+ * pod Switcha) + kontekst EGL/OpenGL. Wszystkie te pliki są w całości owinięte
+ * w #ifdef __SWITCH__, więc na PC/Vicie są puste. */
+#if defined(__SWITCH__)
+#include "platform/native_renderer_switch.c"
+#include "platform/native_input_switch.c"
+#include "platform/native_sdl_shim_switch.c"
+#endif
+
 #ifndef CC
 #if defined(__GNUC__)
 #if _WIN32
@@ -198,8 +207,10 @@ int cfg_language = 2; // Default: PAL UK language
 
 static const char *NativeConfig_GetPath(void)
 {
-#ifdef __vita__
+#if defined(__vita__)
 	return "ux0:data/ctr/config.ini";
+#elif defined(__SWITCH__)
+	return "sdmc:/switch/ctr_native/config.ini";
 #else
 	return "config.ini";
 #endif
@@ -305,6 +316,44 @@ void *real_main(void *_argv)
 	sceIoMkdir("ux0:data/ctr/shader_cache", 0777);
 	char **argv = _argv;
 	int argc = 0;
+#elif defined(__SWITCH__)
+#include <pthread.h>
+#include <sys/stat.h>
+void *real_main(void *argv);
+
+int main(int argc, char *argv[])
+{
+	(void)argc;
+	(void)argv;
+	/* Domyślny stos wątku głównego Horizon (1 MB) bywa za mały dla gry -
+	 * uruchamiamy właściwą pętlę na osobnym wątku z 4 MB stosu, tak jak robi
+	 * to wersja Vita. */
+	pthread_t t;
+	pthread_attr_t attr;
+	pthread_attr_init(&attr);
+	pthread_attr_setstacksize(&attr, 0x400000);
+	if (pthread_create(&t, &attr, real_main, NULL) == 0)
+	{
+		pthread_join(t, NULL);
+	}
+	pthread_attr_destroy(&attr);
+	return 0;
+}
+
+void *real_main(void *_argv)
+{
+	(void)_argv;
+	/* Katalog danych na karcie SD (config.ini, cache itd.). */
+	mkdir("sdmc:/switch", 0777);
+	mkdir("sdmc:/switch/ctr_native", 0777);
+	mkdir("sdmc:/switch/ctr_native/shader_cache", 0777);
+
+	/* load_config() jest wołane w dalszej, wspólnej części main() pod
+	 * `#ifndef __vita__` (Switch nie jest __vita__), więc tu go nie dublujemy. */
+
+	char *switchArgv[] = { "ctr", NULL };
+	char **argv = switchArgv;
+	int argc = 1;
 #else
 int main(int argc, char *argv[])
 {
@@ -321,8 +370,12 @@ int main(int argc, char *argv[])
 	printf("[CTR Native] Starting...\n");
 	fflush(stdout);
 
-#ifdef __vita__
+#if defined(__vita__)
 	const char *sdlBasePath = "ux0:data/ctr";
+#elif defined(__SWITCH__)
+	/* Switch: assety leżą obok .nro na karcie SD. Nie wołamy SDL_GetBasePath
+	 * (shim i tak zwróciłby stałą) - hardkodujemy katalog danych. */
+	const char *sdlBasePath = "sdmc:/switch/ctr_native";
 #else
 	const char *sdlBasePath = SDL_GetBasePath();
 #endif

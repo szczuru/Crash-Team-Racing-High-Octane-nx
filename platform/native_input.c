@@ -2,6 +2,7 @@
 
 #include <macros.h>
 #include "platform/native_adhoc.h"
+#include "platform/native_input_switch.h"
 #include "psx/libpad.h"
 
 #include <SDL3/SDL.h>
@@ -867,7 +868,10 @@ void Platform_InputUpdate(void)
 		return;
 	}
 
-#ifdef __vita__
+#if defined(__vita__)
+	keyboardButtons = 0xffff;
+#elif defined(__SWITCH__)
+	NativeInputSwitch_PumpPads();
 	keyboardButtons = 0xffff;
 #else
 	SDL_PumpEvents();
@@ -878,7 +882,7 @@ void Platform_InputUpdate(void)
 	{
 		NativeInput_ResetSnapshot(slot);
 		NativeInput_ApplyController(slot);
-#ifndef __vita__
+#if !defined(__vita__) && !defined(__SWITCH__)
 		NativeInput_ApplyKeyboard(slot, keyboardButtons);
 #endif
 		adhocPads[slot] = s_controllers[slot].snapshot;

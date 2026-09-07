@@ -1,0 +1,100 @@
+# Makefile.switch - Nintendo Switch (devkitA64 / libnx) build for CTR: High Octane.
+#
+# Wzorowany na Makefile.vita (ten sam pomysł: kompiluje wyłącznie main.c jako
+# jeden wielki unity-build), ale pakowanie idzie ścieżką libnx: main.c -> .elf
+# -> .nro (przez reguły elf2nro/nacptool z switch_rules), zamiast .vpk jak na
+# Vicie.
+#
+# Użycie:
+#   export DEVKITPRO=/opt/devkitpro
+#   make -f Makefile.switch
+# Wynik: ctr.nro
+#
+# Wymagane pakiety devkitPro (dkp-pacman):
+#   switch-mesa            (EGL/OpenGL przez nouveau -> -lEGL -lglapi -ldrm_nouveau)
+#   (libnx jest w devkitA64 domyślnie -> -lnx)
+# Opcjonalnie (przyszłość: leaderboard/duchy przez switch-curl):
+#   switch-curl switch-mbedtls switch-zlib  (-lcurl -lmbedtls -lmbedcrypto -lmbedx509 -lz)
+#
+# UWAGA: SDL3 NIE jest linkowane (brak backendu SDL3 pod Switcha). Symbole SDL,
+# których gra realnie używa, dostarczają własne shimy:
+#   platform/native_sdl_shim_switch.c   (threading/timing/audio-noop/window stubs)
+#   platform/native_input_switch.c      (SDL_Gamepad/SDL_Joystick -> libnx PadState)
+#   platform/native_renderer_switch.c   (EGL/OpenGL kontekst)
+# (patrz include/platform/PATCH_NOTES_switch_*.md)
+
+.SUFFIXES:
+
+ifeq ($(strip $(DEVKITPRO)),)
+$(error "Ustaw DEVKITPRO w środowisku, np. export DEVKITPRO=/opt/devkitpro")
+endif
+
+TOPDIR ?= $(CURDIR)
+include $(DEVKITPRO)/libnx/switch_rules
+
+#---------------------------------------------------------------------------------
+# Metadane aplikacji - switch_rules/nacptool czyta je ze środowiska (export).
+#---------------------------------------------------------------------------------
+export TARGET      := ctr
+export APP_TITLE   := CTR: High Octane
+export APP_AUTHOR  := CTR-tools / Rinnegatamante / szczuru
+export APP_VERSION := 0.1.0-beta.5
+
+GIT_VERSION := $(shell git describe --abbrev=6 --dirty --always --tags 2>/dev/null || echo unknown)
+
+#---------------------------------------------------------------------------------
+# Kod źródłowy: unity-build, tylko main.c (tak jak Makefile.vita).
+# Reszta plików (.c z platform/ i game/) wchodzi przez #include w main.c.
+#---------------------------------------------------------------------------------
+OFILES := main.o
+
+#---------------------------------------------------------------------------------
+# Flagi kompilacji
+#---------------------------------------------------------------------------------
+ARCH := -march=armv8-a+crc+crypto -mtune=cortex-a57 -mtp=soft -fPIE
+
+DEFINES := -D__SWITCH__ -DCTR_NATIVE -DCTR_INTERNAL \
+	-DBUILD=926 \
+	-DCTR_NATIVE_VERSION='"$(APP_VERSION)"' \
+	-DCTR_NATIVE_BUILD_ID='"switch"' \
+	-DCTR_NATIVE_WIDESCREEN
+
+LIBDIRS  := $(PORTLIBS) $(LIBNX)
+
+INCLUDE := -I$(TOPDIR) -I$(TOPDIR)/include -I$(TOPDIR)/externals/SDL/include \
+	$(foreach dir,$(LIBDIRS),-I$(dir)/include) \
+	$(foreach dir,$(LIBDIRS),-I$(dir)/include/EGL)
+
+# -fsigned-char: gra zakłada signed char (jak Vita). -ffast-math jak na Vicie.
+CFLAGS := -g -Wall -O2 -ffunction-sections -fdata-sections -fsigned-char \
+	-ffast-math -fno-optimize-sibling-calls \
+	$(ARCH) $(DEFINES) $(INCLUDE)
+
+LDFLAGS := -specs=$(DEVKITPRO)/libnx/switch.specs -g $(ARCH) \
+	-Wl,--gc-sections -Wl,-Map,$(TARGET).map
+
+#---------------------------------------------------------------------------------
+# Biblioteki (kolejność ważna dla ld). switch-mesa: EGL/glapi/drm_nouveau.
+# NIE linkujemy -lglad: projekt ma własny loader GLAD (native_glad.c).
+#---------------------------------------------------------------------------------
+LIBS := -lEGL -lglapi -ldrm_nouveau -lnx -lm
+LIBPATHS := $(foreach dir,$(LIBDIRS),-L$(dir)/lib)
+
+#---------------------------------------------------------------------------------
+# Cele. Reguły %.nro: %.elf %.nacp oraz %.nacp: pochodzą z switch_rules.
+#---------------------------------------------------------------------------------
+all: $(TARGET).nro
+
+# main.c to unity-build - zależy od wszystkich włączanych plików źródłowych,
+# więc przebudowujemy zawsze, gdy zmieni się którykolwiek plik projektu.
+$(TARGET).elf: $(OFILES)
+	$(CC) $(LDFLAGS) $(OFILES) $(LIBPATHS) $(LIBS) -o $@
+
+main.o: main.c
+	$(CC) $(CFLAGS) -c $< -o $@
+
+clean:
+	@echo clean ...
+	@rm -f $(TARGET).nro $(TARGET).elf $(TARGET).nacp $(TARGET).map $(OFILES)
+
+.PHONY: all clean

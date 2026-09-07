@@ -15,6 +15,7 @@
 #include "platform/native_log.h"
 #include "platform/native_perf.h"
 #include "platform/native_renderer.h"
+#include "platform/native_renderer_switch.h"
 
 #include <assert.h>
 #include <string.h>
@@ -460,6 +461,7 @@ internal int NativeRenderer_InitialiseGLContext(char *windowName, int fullscreen
 	}
 
 	return 1;
+#endif /* !__SWITCH__ */
 }
 
 internal int NativeRenderer_InitialiseGLExt(void)
@@ -502,7 +504,9 @@ int NativeRenderer_InitialiseRender(char *windowName, int width, int height, int
 		NATIVE_RENDERER_ERROR("%s\n", "Failed to Initialise GL Context!");
 		return 0;
 	}
-#ifndef __vita__
+#if defined(__SWITCH__)
+	NativeRendererSwitch_GetFramebufferSize(&g_windowWidth, &g_windowHeight);
+#elif !defined(__vita__)
 	SDL_GetWindowSizeInPixels(g_window, &g_windowWidth, &g_windowHeight);
 #endif
 
@@ -3793,6 +3797,8 @@ void NativeRenderer_SwapWindow(void)
 	{
 		SDL_GL_SwapWindow(g_window);
 	}
+#elif defined(__SWITCH__)
+	NativeRendererSwitch_SwapBuffers();
 #else
 	SDL_GL_SwapWindow(g_window);
 #endif

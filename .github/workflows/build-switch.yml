@@ -1,0 +1,58 @@
+name: Build (Nintendo Switch)
+
+# Buduje homebrew .nro dla Nintendo Switch (devkitA64 / libnx).
+# Renderer: switch-mesa (OpenGL/EGL przez nouveau). SDL3 NIE jest linkowane -
+# używane są własne shimy (platform/native_*_switch.c).
+
+on:
+  push:
+    branches: [ vita, switch, main, master ]
+    paths-ignore:
+      - '**.md'
+  pull_request:
+    paths-ignore:
+      - '**.md'
+  workflow_dispatch:
+
+jobs:
+  build-switch:
+    runs-on: ubuntu-latest
+    # Oficjalny obraz devkitPro dla AArch64/Switch: zawiera devkitA64, libnx,
+    # dkp-pacman oraz ustawione DEVKITPRO=/opt/devkitpro.
+    container:
+      image: devkitpro/devkita64:latest
+
+    steps:
+      - name: Checkout (z submodułami)
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Instalacja zależności devkitPro (switch-mesa dla OpenGL/EGL)
+        run: |
+          # -Sy odświeża bazę pakietów; --noconfirm bo CI. switch-mesa ciągnie
+          # switch-libdrm_nouveau (EGL/glapi/drm_nouveau).
+          dkp-pacman -Sy --noconfirm
+          dkp-pacman -S --needed --noconfirm switch-mesa
+          # Opcjonalnie pod przyszły leaderboard/duchy (nie wymagane do bootu):
+          # dkp-pacman -S --needed --noconfirm switch-curl switch-mbedtls switch-zlib
+
+      - name: Build (.nro)
+        env:
+          DEVKITPRO: /opt/devkitpro
+        run: |
+          make -f Makefile.switch -j$(nproc)
+
+      - name: Sanity check - artefakt .nro istnieje
+        run: |
+          ls -la ctr.nro ctr.elf
+          file ctr.nro || true
+
+      - name: Upload artefaktu .nro
+        uses: actions/upload-artifact@v4
+        with:
+          name: ctr-switch-nro
+          path: |
+            ctr.nro
+            ctr.elf
+          if-no-files-found: error
