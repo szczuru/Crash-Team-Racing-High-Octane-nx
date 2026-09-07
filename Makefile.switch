@@ -76,8 +76,15 @@ LDFLAGS := -specs=$(DEVKITPRO)/libnx/switch.specs -g $(ARCH) \
 #---------------------------------------------------------------------------------
 # Biblioteki (kolejność ważna dla ld). switch-mesa: EGL/glapi/drm_nouveau.
 # NIE linkujemy -lglad: projekt ma własny loader GLAD (native_glad.c).
+#
+# UWAGA: libEGL.a (switch-mesa) to w istocie skompilowany C++ (kompilator
+# GLSL/nv50_ir z Mesa), więc statycznie linkuje std::/operator new/delete,
+# __cxa_guard_acquire/release itd. Nasz program jest w C (main.c, unity-build)
+# i linkujemy przez aarch64-none-elf-gcc, który (w przeciwieństwie do g++) nie
+# dociąga automatycznie libstdc++ - trzeba to zrobić explicite, inaczej ld
+# zgłasza dziesiątki "undefined reference to operator new/delete" itp.
 #---------------------------------------------------------------------------------
-LIBS := -lEGL -lglapi -ldrm_nouveau -lnx -lm
+LIBS := -lEGL -lglapi -ldrm_nouveau -lnx -lstdc++ -lm
 LIBPATHS := $(foreach dir,$(LIBDIRS),-L$(dir)/lib)
 
 #---------------------------------------------------------------------------------
