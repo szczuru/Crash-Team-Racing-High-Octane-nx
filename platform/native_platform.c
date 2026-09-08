@@ -473,6 +473,17 @@ void Platform_BeginFrame(void)
 
 int Platform_BeginScene(void)
 {
+#if defined(__SWITCH__)
+	{
+		static int s_diagPrinted = 0;
+		if (!s_diagPrinted)
+		{
+			s_diagPrinted = 1;
+			printf("[CTR Native/Diag] Platform_BeginScene: first call reached\n");
+			fflush(stdout);
+		}
+	}
+#endif
 	if (s_platformBeginScene)
 	{
 		return 0;

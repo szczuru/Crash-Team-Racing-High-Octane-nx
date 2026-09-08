@@ -635,13 +635,29 @@ void StateZero()
 #define MEMPACK_SIZE 0x200000 // 2mb
 
 	MEMPACK_Init(MEMPACK_SIZE);
+#if defined(__SWITCH__)
+	printf("[CTR Native/Diag] StateZero: before LOAD_InitCD\n");
+	fflush(stdout);
+#endif
 	LOAD_InitCD();
+#if defined(__SWITCH__)
+	printf("[CTR Native/Diag] StateZero: after LOAD_InitCD\n");
+	fflush(stdout);
+#endif
 	RaceFlag_SetFullyOffScreen();
 
 	ResetGraph(0);
 	SetGraphDebug(0);
 
+#if defined(__SWITCH__)
+	printf("[CTR Native/Diag] StateZero: before MainInit_VRAMClear\n");
+	fflush(stdout);
+#endif
 	MainInit_VRAMClear();
+#if defined(__SWITCH__)
+	printf("[CTR Native/Diag] StateZero: after MainInit_VRAMClear\n");
+	fflush(stdout);
+#endif
 
 	SetDispMask(1);
 
@@ -691,11 +707,35 @@ void StateZero()
 	Timer_Init();
 	DrawSyncCallback(&MainDrawCb_DrawSync);
 
+#if defined(__SWITCH__)
+	printf("[CTR Native/Diag] StateZero: before MEMCARD_InitCard\n");
+	fflush(stdout);
+#endif
 	MEMCARD_InitCard();
+#if defined(__SWITCH__)
+	printf("[CTR Native/Diag] StateZero: after MEMCARD_InitCard, before VSync(0) #1\n");
+	fflush(stdout);
+#endif
 	VSync(0);
+#if defined(__SWITCH__)
+	printf("[CTR Native/Diag] StateZero: after VSync(0) #1, before GAMEPAD_Init\n");
+	fflush(stdout);
+#endif
 	GAMEPAD_Init(gGS);
+#if defined(__SWITCH__)
+	printf("[CTR Native/Diag] StateZero: after GAMEPAD_Init, before VSync(0) #2\n");
+	fflush(stdout);
+#endif
 	VSync(0);
+#if defined(__SWITCH__)
+	printf("[CTR Native/Diag] StateZero: after VSync(0) #2, before GAMEPAD_GetNumConnected\n");
+	fflush(stdout);
+#endif
 	GAMEPAD_GetNumConnected(gGS);
+#if defined(__SWITCH__)
+	printf("[CTR Native/Diag] StateZero: after GAMEPAD_GetNumConnected, before LOAD_ReadDirectory\n");
+	fflush(stdout);
+#endif
 
 #ifdef CTR_NATIVE
 #define BIGPATH "\\BIGFILE.BIG;1"
@@ -705,6 +745,10 @@ void StateZero()
 
 	// Get CD Position fo BIGFILE
 	sdata->ptrBigfile1 = LOAD_ReadDirectory(BIGPATH);
+#if defined(__SWITCH__)
+	printf("[CTR Native/Diag] StateZero: after LOAD_ReadDirectory, ptrBigfile1=%p\n", sdata->ptrBigfile1);
+	fflush(stdout);
+#endif
 
 // Defrag to save heap space,
 // required because MEMPACK_Init moves heap
@@ -798,9 +842,17 @@ void StateZero()
 
 	DecalGlobal_Clear(gGT);
 
+#if defined(__SWITCH__)
+	printf("[CTR Native/Diag] StateZero: before LOAD_VramFile\n");
+	fflush(stdout);
+#endif
 	// This loads UI textures (shared.vrm)
 	// This includes traffic lights, font, and more
 	LOAD_VramFile(sdata->ptrBigfile1, 0x102, NULL, &vramSize, -1);
+#if defined(__SWITCH__)
+	printf("[CTR Native/Diag] StateZero: after LOAD_VramFile, end of StateZero\n");
+	fflush(stdout);
+#endif
 
 	sdata->mainGameState = 3;
 
