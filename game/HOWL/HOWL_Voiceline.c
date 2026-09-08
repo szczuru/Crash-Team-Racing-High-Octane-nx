@@ -19,7 +19,17 @@ void Voiceline_PoolInit(void)
 	LIST_Clear(&sdata->channelFree);
 	LIST_Clear(&sdata->channelTaken);
 
-	LIST_Init(&sdata->channelFree, &sdata->channelStatsPrev[0].item, 0x20, 0x18);
+	// NOTE: was hardcoded 0x20 (retail's 32-bit sizeof(struct ChannelStats)).
+	// struct ChannelStats's `next`/`prev` union with `struct Item` are real
+	// pointers, so the struct is genuinely larger on a 64-bit host
+	// (Switch/AArch64) than on 32-bit targets (PC/Vita) - the hardcoded
+	// stride caused LIST_Init to walk sdata->channelStatsPrev[] with the
+	// wrong step, building a corrupted free-list whose next/prev pointers
+	// point into the middle of neighbouring array elements instead of at
+	// their start. Use sizeof(struct ChannelStats) so the stride always
+	// matches the host's actual struct layout (identical value to 0x20 on
+	// 32-bit hosts, so no behavior change there).
+	LIST_Init(&sdata->channelFree, &sdata->channelStatsPrev[0].item, sizeof(struct ChannelStats), 0x18);
 
 	SpuSetReverbVoice(0, 0xffffff);
 
