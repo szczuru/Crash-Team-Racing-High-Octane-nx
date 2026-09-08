@@ -10,7 +10,14 @@ struct PlatformMempackArena
 	int backingSize;
 };
 
-void Platform_Init(const char *title, int width, int height);
+// NOTE: returns 0 on failure (e.g. renderer/EGL context could not be
+// created), 1 on success. Callers MUST check this before proceeding into
+// the game loop - on some platforms (e.g. Switch) a failed renderer init
+// otherwise goes completely unnoticed (errors only reach an invisible log)
+// and the game would spin forever in CTR_Main() drawing through a dead
+// GL context, which looks exactly like a black screen with zero indication
+// of what went wrong.
+int Platform_Init(const char *title, int width, int height);
 void Platform_Shutdown(void);
 void Platform_InitScratchpad(void);
 const struct PlatformMempackArena *Platform_InitMempackArena(void);

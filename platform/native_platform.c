@@ -336,7 +336,7 @@ internal void Platform_HandleKey(int key, char down)
 #endif
 }
 
-void Platform_Init(const char *title, int width, int height)
+int Platform_Init(const char *title, int width, int height)
 {
 	char windowName[128];
 
@@ -350,7 +350,7 @@ void Platform_Init(const char *title, int width, int height)
 	{
 		Platform_LogError("[CTR Native] Failed to initialise renderer thread\n");
 		Platform_LogShutdown();
-		return;
+		return 0;
 	}
 #endif
 
@@ -361,7 +361,7 @@ void Platform_Init(const char *title, int width, int height)
 		NativeGpu_ShutdownBackend();
 #endif
 		Platform_LogShutdown();
-		return;
+		return 0;
 	}
 
 	s_platformInitialized = 1;
@@ -398,20 +398,20 @@ void Platform_Init(const char *title, int width, int height)
 	{
 		Platform_LogError("[CTR Native] Failed to initialise renderer\n");
 		Platform_Shutdown();
-		return;
+		return 0;
 	}
 #else
 	if (!NativeRenderer_InitialiseRender(windowName, width, height, 0))
 	{
 		Platform_LogError("[CTR Native] Failed to initialise window\n");
 		Platform_Shutdown();
-		return;
+		return 0;
 	}
 	if (!NativeRenderer_InitialisePSX())
 	{
 		Platform_LogError("[CTR Native] Failed to initialise PSX renderer state\n");
 		Platform_Shutdown();
-		return;
+		return 0;
 	}
 #endif
 #ifndef __vita__
@@ -420,6 +420,7 @@ void Platform_Init(const char *title, int width, int height)
 	atexit(Platform_Shutdown);
 	Platform_UpdateCursorVisibility();
 	Platform_InputInit();
+	return 1;
 }
 
 void Platform_Shutdown(void)

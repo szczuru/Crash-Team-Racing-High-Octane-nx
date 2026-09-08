@@ -343,6 +343,23 @@ int main(int argc, char *argv[])
 void *real_main(void *_argv)
 {
 	(void)_argv;
+
+#if defined(CTR_INTERNAL)
+	/* Debug-only: gdy gra wystartowana przez `nxlink -s ctr.nro` (devkitA64),
+	 * przekierowuje stdout/stderr przez sieć na PC, żeby printf/Platform_Log*
+	 * były widoczne na żywo - inaczej na Switchu idą w całkowitą pustkę (nie
+	 * ma konsoli/terminala), co utrudnia diagnozę np. nieudanej inicjalizacji
+	 * renderera (patrz sprawdzenie Platform_Init() poniżej). Jeśli gra NIE
+	 * została wystartowana przez nxlink (np. z Album/hbmenu), te wywołania
+	 * po prostu nie znajdują serwera i printf i tak leci do (niewidocznego)
+	 * stdout - bez blokowania startu.
+	 * Wymaga <switch.h>, które i tak jest już włączone wcześniej w tym unity
+	 * build (patrz platform/native_renderer_switch.c poniżej w kolejności
+	 * #include main.c), więc deklaracje są tu już widoczne. */
+	socketInitializeDefault();
+	nxlinkStdio();
+#endif
+
 	/* Katalog danych na karcie SD (config.ini, cache itd.). */
 	mkdir("sdmc:/switch", 0777);
 	mkdir("sdmc:/switch/ctr_native", 0777);
@@ -432,17 +449,31 @@ int main(int argc, char *argv[])
 
 #if defined(__vita__)
 	printf("[CTR Native] High Octane widescreen 960x544\n");
-	Platform_Init("Crash Team Racing: High Octane", 960, 544);
+	const int platformInitOk = Platform_Init("Crash Team Racing: High Octane", 960, 544);
 #elif CTR_NATIVE_WIDESCREEN
 	printf("[CTR Native] High Octane widescreen 1280x720\n");
-	Platform_Init("Crash Team Racing: High Octane", 1280, 720);
+	const int platformInitOk = Platform_Init("Crash Team Racing: High Octane", 1280, 720);
 #elif defined(USE_16BY9)
 	printf("[CTR Native] Widescreen\n");
-	Platform_Init("Crash Team Racing: High Octane", 1280, 720);
+	const int platformInitOk = Platform_Init("Crash Team Racing: High Octane", 1280, 720);
 #else
 	printf("[CTR Native] 4:3\n");
-	Platform_Init("Crash Team Racing: High Octane", 800, 600);
+	const int platformInitOk = Platform_Init("Crash Team Racing: High Octane", 800, 600);
 #endif
+
+	// NOTE: Platform_Init() already logs the specific failure (renderer/EGL
+	// context, SDL_Init, etc.) via Platform_LogError, but that previously
+	// went unchecked here - the game would fall straight into CTR_Main()'s
+	// infinite loop and spin forever drawing through a dead/nonexistent GL
+	// context. On platforms with no visible console (e.g. Switch) this
+	// looked exactly like a silent black screen with no error at all. Bail
+	// out cleanly instead so the process actually exits back to the loader.
+	if (!platformInitOk)
+	{
+		fprintf(stderr, "[CTR Native] Platform_Init failed; see log for details.\n");
+		Platform_LogFlush();
+		NATIVE_MAIN_RETURN(NativeConsole_Return(1));
+	}
 
 #if defined(CTR_INTERNAL)
 	if (NativePerf_ConfigureFromArgs(argc, argv) != 0)
