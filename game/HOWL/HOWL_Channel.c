@@ -381,14 +381,33 @@ void Channel_ParseSongToChannels()
 #if defined(__SWITCH__)
 		printf("[CTR Native/Diag] Channel_ParseSongToChannels: song at %p, numSequences=%d\n", song, song->numSequences);
 		fflush(stdout);
+		int diagSeqIndex = -1;
 #endif
 		for (seqEntry = &song->CseqSequences[0]; seqEntry < &song->CseqSequences[song->numSequences]; seqEntry++)
 		{
 			seq = seqEntry[0];
+#if defined(__SWITCH__)
+			diagSeqIndex++;
+			printf("[CTR Native/Diag] Channel_ParseSongToChannels: seqEntry #%d, seq=%p\n", diagSeqIndex, seq);
+			fflush(stdout);
+			if (seq == NULL)
+			{
+				printf("[CTR Native/Diag] Channel_ParseSongToChannels: seq is NULL, skipping (would have crashed on real hardware without this "
+				       "guard!)\n");
+				fflush(stdout);
+				continue;
+			}
+#endif
 
 			volCurr = seq->vol_Curr;
 			volNew = seq->vol_New;
 			volStepRate = seq->vol_StepRate;
+#if defined(__SWITCH__)
+			printf("[CTR Native/Diag] Channel_ParseSongToChannels: seq #%d volCurr=%d volNew=%d volStepRate=%d flags=%d NoteLength=%d "
+			       "NoteTimeElapsed=%d\n",
+			       diagSeqIndex, volCurr, volNew, volStepRate, seq->flags, seq->NoteLength, seq->NoteTimeElapsed);
+			fflush(stdout);
+#endif
 
 			// === Copy/Paste ===
 			if (volCurr != volNew)
@@ -417,6 +436,10 @@ void Channel_ParseSongToChannels()
 			// if sequence is playing
 			if ((seq->flags & 1) != 0)
 			{
+#if defined(__SWITCH__)
+				printf("[CTR Native/Diag] Channel_ParseSongToChannels: seq #%d is playing, entering note-advance section\n", diagSeqIndex);
+				fflush(stdout);
+#endif
 				seq->NoteTimeElapsed += unk10_total >> 0x10;
 
 				// === need to work on this variable naming ===
@@ -448,11 +471,21 @@ void Channel_ParseSongToChannels()
 					// currNote->opcode
 					int opcode = (u8)seq->currNote[0];
 
+#if defined(__SWITCH__)
+					printf("[CTR Native/Diag] Channel_ParseSongToChannels: seq #%d note iter %d, currNote=%p opcode=%d\n", diagSeqIndex,
+					       diagNoteIterCount, seq->currNote, opcode);
+					fflush(stdout);
+#endif
+
 					if (opcode < 0xb)
 					{
 						// call opcode from funcPtr array,
 						// this is OG until DATA is rewritten
 						(*data.opcodeFunc[opcode])(seq);
+#if defined(__SWITCH__)
+						printf("[CTR Native/Diag] Channel_ParseSongToChannels: seq #%d opcode %d returned\n", diagSeqIndex, opcode);
+						fflush(stdout);
+#endif
 
 						// if reached end, quit
 						if ((seq->flags & 1) == 0)
