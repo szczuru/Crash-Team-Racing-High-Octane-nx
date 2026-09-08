@@ -118,6 +118,10 @@ void GAMEPROG_AdvPercent(struct AdvProgress *adv)
 // NOTE(aalhendi): ASM-verified NTSC-U 926 0x8002689c-0x80026ae4.
 void GAMEPROG_ResetHighScores(struct GameProgress *gameProg)
 {
+#if defined(__SWITCH__)
+	printf("[CTR Native/Diag] GAMEPROG_ResetHighScores: enter\n");
+	fflush(stdout);
+#endif
 	// for every track
 	for (s32 i = 0; i < MEMCARD_HIGH_SCORE_TRACK_COUNT; i++)
 	{
@@ -145,7 +149,16 @@ void GAMEPROG_ResetHighScores(struct GameProgress *gameProg)
 				entry->time = MEMCARD_HIGH_SCORE_DEFAULT_TIME;
 				entry->characterID = characterID;
 
-				char *name = sdata->lngStrings[data.MetaDataCharacters[characterID].name_LNG_short];
+				s16 nameLngIndex = data.MetaDataCharacters[characterID].name_LNG_short;
+				char *name = sdata->lngStrings[nameLngIndex];
+#if defined(__SWITCH__)
+				if ((i == 0) && (j == 0) && (k == 0))
+				{
+					printf("[CTR Native/Diag] GAMEPROG_ResetHighScores: first entry, characterID=%d nameLngIndex=%d name=%p\n",
+					       characterID, nameLngIndex, name);
+					fflush(stdout);
+				}
+#endif
 
 				// can't do an int-copy,
 				// strings in LNG are unaligned
@@ -153,6 +166,10 @@ void GAMEPROG_ResetHighScores(struct GameProgress *gameProg)
 			}
 		}
 	}
+#if defined(__SWITCH__)
+	printf("[CTR Native/Diag] GAMEPROG_ResetHighScores: exit\n");
+	fflush(stdout);
+#endif
 }
 
 
