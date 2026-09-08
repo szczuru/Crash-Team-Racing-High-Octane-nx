@@ -206,8 +206,26 @@ void NativeRendererSwitch_ShutdownContext(void)
 	s_window = NULL;
 }
 
+/* TEMPORARY DIAGNOSTIC - remove once the black-screen root cause is
+ * confirmed. Forces the real screen framebuffer (FBO 0) to solid red right
+ * before every swap, to isolate whether eglSwapBuffers/the NWindow surface
+ * itself displays anything at all, independent of the game's own render
+ * pipeline (VRAM FBO -> present shader -> FBO 0). If the screen turns red,
+ * the swap/surface/compositor path works fine and the bug is somewhere in
+ * the game's own present pipeline (or upstream of it, e.g. nothing ever
+ * reaching BeginScene/EndScene). If the screen stays black even with this,
+ * the bug is at the EGL/NWindow/compositor level, before the game's
+ * rendering code has any chance to run. */
+#define NATIVE_SWITCH_DEBUG_FORCE_RED 1
+
 void NativeRendererSwitch_SwapBuffers(void)
 {
+#if NATIVE_SWITCH_DEBUG_FORCE_RED
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	glClearColor(1.0f, 0.0f, 0.0f, 1.0f);
+	glClear(GL_COLOR_BUFFER_BIT);
+#endif
+
 	/* Sprawdzamy zmianę trybu konsoli raz na klatkę - najtańszy i
 	 * najbardziej niezawodny moment, zaraz po prezentacji poprzedniej. */
 	AppletOperationMode mode = appletGetOperationMode();
