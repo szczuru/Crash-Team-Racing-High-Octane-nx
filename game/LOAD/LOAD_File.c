@@ -349,6 +349,12 @@ void *LOAD_ReadFile_ex(struct BigHeader *bigfile, u32 loadType, int subfileIndex
 
 	*sizePtr = eSize;
 
+#if defined(__SWITCH__)
+	printf("[CTR Native/Diag] LOAD_ReadFile_ex: subfileIndex=0x%x eSize=%d eOffs=%d ptrDst=%p callback=%p\n", subfileIndex, eSize, eOffs, ptrDst,
+	       (void *)callback);
+	fflush(stdout);
+#endif
+
 	CdIntToPos(bigfile->cdpos + eOffs, &cdLoc);
 
 	struct LoadQueueSlot *lqs = &data.currSlot;
@@ -390,8 +396,26 @@ void *LOAD_ReadFile_ex(struct BigHeader *bigfile, u32 loadType, int subfileIndex
 	lqs->size_UNUSED = eSize;
 #endif
 
+#if defined(__SWITCH__)
+	int diagLoopCount = 0;
+#endif
 	while (1)
 	{
+#if defined(__SWITCH__)
+		diagLoopCount++;
+		if (diagLoopCount > 1)
+		{
+			printf("[CTR Native/Diag] LOAD_ReadFile_ex: retry loop iteration %d for subfileIndex=0x%x\n", diagLoopCount, subfileIndex);
+			fflush(stdout);
+		}
+		if (diagLoopCount > 1000)
+		{
+			printf("[CTR Native/Diag] LOAD_ReadFile_ex: giving up after %d iterations for subfileIndex=0x%x - real bug is elsewhere\n", diagLoopCount,
+			       subfileIndex);
+			fflush(stdout);
+			break;
+		}
+#endif
 		uVar5 = CdControl(CdlSetloc, (u8 *)&cdLoc, &paramOutput[0]);
 
 		if (callback != NULL)
@@ -423,6 +447,10 @@ void *LOAD_ReadFile_ex(struct BigHeader *bigfile, u32 loadType, int subfileIndex
 		VSync(0);
 #endif
 	}
+#if defined(__SWITCH__)
+	printf("[CTR Native/Diag] LOAD_ReadFile_ex: read loop finished after %d iteration(s) for subfileIndex=0x%x\n", diagLoopCount, subfileIndex);
+	fflush(stdout);
+#endif
 
 	if ((callback == NULL) && (originalDst == NULL))
 	{
