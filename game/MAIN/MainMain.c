@@ -99,6 +99,21 @@ u32 main(void)
 		}
 #endif
 
+#if defined(__SWITCH__)
+		{
+			static int s_diagLastMainGameState = -999;
+			static int s_diagLastLoadingStage = -999;
+			if ((sdata->mainGameState != s_diagLastMainGameState) || (sdata->Loading.stage != s_diagLastLoadingStage))
+			{
+				printf("[CTR Native/Diag] CTR_Main: mainGameState %d -> %d, Loading.stage %d -> %d\n", s_diagLastMainGameState,
+				       sdata->mainGameState, s_diagLastLoadingStage, sdata->Loading.stage);
+				fflush(stdout);
+				s_diagLastMainGameState = sdata->mainGameState;
+				s_diagLastLoadingStage = sdata->Loading.stage;
+			}
+		}
+#endif
+
 		LOAD_NextQueuedFile();
 		// NOTE(aalhendi): ASM-verified NTSC-U 926 0x8003c5d0-0x8003c5dc for per-frame XA pause handling.
 		CDSYS_XAPauseAtEnd();
