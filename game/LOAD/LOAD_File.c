@@ -291,7 +291,15 @@ void *LOAD_VramFile(void *bigfilePtr, int subfileIndex, void *ptrDestination, u3
 
 		LOAD_VramFileCallback(&lqs);
 
+#if defined(__SWITCH__)
+		printf("[CTR Native/Diag] LOAD_VramFile: before VSync(2)\n");
+		fflush(stdout);
+#endif
 		VSync(2);
+#if defined(__SWITCH__)
+		printf("[CTR Native/Diag] LOAD_VramFile: after VSync(2)\n");
+		fflush(stdout);
+#endif
 		sdata->frameFinishedVRAM = 0;
 
 		if (ptrDestination == NULL)

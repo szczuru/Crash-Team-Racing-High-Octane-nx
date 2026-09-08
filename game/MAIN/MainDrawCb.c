@@ -20,6 +20,11 @@ void MainDrawCb_Vsync()
 {
 	struct GameTracker *gGT;
 
+#if defined(__SWITCH__)
+	printf("[CTR Native/Diag] MainDrawCb_Vsync: enter\n");
+	fflush(stdout);
+#endif
+
 	gGT = sdata->gGT;
 	gGT->frameTimer_VsyncCallback++;
 	if ((gGT->gameMode1 & PAUSE_ALL) == 0)
@@ -34,6 +39,10 @@ void MainDrawCb_Vsync()
 	sdata->rcntTotalUnits += GetRCnt(0xf2000001);
 	ResetRCnt(0xf2000001);
 
+#if defined(__SWITCH__)
+	printf("[CTR Native/Diag] MainDrawCb_Vsync: before howl_PlayAudio_Update (criticalSectionCount=%d)\n", sdata->criticalSectionCount);
+	fflush(stdout);
+#endif
 #ifdef CTR_NATIVE
 	// NOTE(aalhendi): Retail calls HOWL unconditionally. Native skips only while
 	// channel lists are mid-edit.
@@ -42,14 +51,27 @@ void MainDrawCb_Vsync()
 	{
 		howl_PlayAudio_Update();
 	}
+#if defined(__SWITCH__)
+	printf("[CTR Native/Diag] MainDrawCb_Vsync: after howl_PlayAudio_Update, before Platform_PollInput\n");
+	fflush(stdout);
+#endif
 
 #ifdef CTR_NATIVE
 	// NOTE(aalhendi): Native owns host input and writes PSX-shaped pad
 	// snapshots before retail GAMEPAD_PollVsync consumes them.
 	Platform_PollInput();
 #endif
+#if defined(__SWITCH__)
+	printf("[CTR Native/Diag] MainDrawCb_Vsync: after Platform_PollInput, before GAMEPAD_PollVsync\n");
+	fflush(stdout);
+#endif
 
 	GAMEPAD_PollVsync(sdata->gGamepads);
+
+#if defined(__SWITCH__)
+	printf("[CTR Native/Diag] MainDrawCb_Vsync: exit\n");
+	fflush(stdout);
+#endif
 
 	return;
 }
