@@ -1473,11 +1473,22 @@ internal int NativeRenderer_Shader_CheckShaderStatus(GLuint shader)
 	}
 
 	glGetShaderInfoLog(shader, sizeof(info), NULL, info);
-	if (info[0] && strlen(info) > 8)
+	// NOTE: previously this only logged/asserted when the driver returned a
+	// info log longer than 8 chars, which let a genuine GL_COMPILE_STATUS ==
+	// GL_FALSE with an empty/short info log (seen in practice on some Mesa
+	// versions) go completely unreported - a shader could silently fail to
+	// compile with zero diagnostic output anywhere, which is exactly what
+	// makes a resulting black screen so hard to diagnose. Always log on
+	// failure now; only skip the info-log body itself if it's empty.
+	if (info[0] != '\0')
 	{
 		NATIVE_RENDERER_ERROR("%s\n", info);
-		assert(0);
 	}
+	else
+	{
+		NATIVE_RENDERER_ERROR("%s\n", "shader failed to compile (no driver info log)");
+	}
+	assert(0);
 
 	return 0;
 }
@@ -1495,11 +1506,17 @@ internal int NativeRenderer_Shader_CheckProgramStatus(GLuint program)
 	}
 
 	glGetProgramInfoLog(program, sizeof(info), NULL, info);
-	if (info[0] && strlen(info) > 8)
+	// NOTE: see the matching comment in NativeRenderer_Shader_CheckShaderStatus
+	// - always log on failure now, even with an empty/short driver info log.
+	if (info[0] != '\0')
 	{
 		NATIVE_RENDERER_ERROR("%s\n", info);
-		assert(0);
 	}
+	else
+	{
+		NATIVE_RENDERER_ERROR("%s\n", "shader program failed to link (no driver info log)");
+	}
+	assert(0);
 
 	return 0;
 }
@@ -1523,6 +1540,26 @@ internal ShaderID NativeRenderer_Shader_Compile(const char *source, bool isPsxSh
 	                               "	#define varying     in\n"
 	                               "	#define texture2D   texture\n"
 	                               "	out vec4 fragColor;\n"
+	                               // NOTE: every shader body below (ctr_present_rgba_shader,
+	                               // ctr_present_vram_shader, ctr_pack_shader, and the PSX
+	                               // GTE fragment shader via GPU_PSX_FRAGMENT_OUTPUT/
+	                               // GPU_PSX_BLEND_APPLY) writes to `gl_FragColor`, the legacy
+	                               // compatibility-profile builtin - it is not available in a
+	                               // strict Core Profile context (requested both on PC via
+	                               // SDL_GL_CONTEXT_PROFILE_CORE and on Switch via
+	                               // EGL_CONTEXT_OPENGL_CORE_PROFILE_BIT_KHR). Desktop GL
+	                               // drivers (NVIDIA/AMD/Intel) tolerate this as a
+	                               // non-conformant extension and silently keep working; Mesa's
+	                               // nouveau driver (switch-mesa) enforces the spec and rejects
+	                               // it, and because NativeRenderer_Shader_Compile()'s error
+	                               // logging is gated on the info log being longer than 8 chars,
+	                               // a short/empty link-failure log goes completely unreported -
+	                               // the game boots to a silent, permanent black screen with a
+	                               // valid EGL context and no error anywhere. Redirect the
+	                               // legacy builtin onto the already-declared `fragColor` out
+	                               // variable so every shader body keeps working unmodified on
+	                               // every platform, core profile or not.
+	                               "	#define gl_FragColor fragColor\n"
 #endif
 								   ;
 
