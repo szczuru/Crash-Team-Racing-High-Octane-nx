@@ -1940,7 +1940,21 @@ global_variable const char *ctr_present_rgba_shader = "#ifdef VERTEX\n"
                                                        "}\n"
                                                        "void main() {\n"
                                                        "    vec2 uv = vec2(v_uv.x, mix(v_uv.y, 1.0 - v_uv.y, flipY));\n"
-                                                       "    gl_FragColor = (fxaaEnabled != 0) ? fxaaSample(uv) : texture2D(s_src, uv);\n"
+                                                       "    vec4 presentColor = (fxaaEnabled != 0) ? fxaaSample(uv) : texture2D(s_src, uv);\n"
+                                                       // NOTE: s_src (the RGBA8 "VRAM" main render target) carries the
+                                                       // PSX draw-mask bit in its alpha channel, which is ~0 for the vast
+                                                       // majority of ordinary opaque draws. That alpha would otherwise
+                                                       // reach the real window/EGL surface framebuffer unmodified. Desktop
+                                                       // window compositors ignore an application window's own alpha
+                                                       // channel, so this was invisible on PC - but the Switch NWindow
+                                                       // surface actually honours it (the EGL config requests an alpha
+                                                       // channel), so an almost-entirely alpha~0 final frame gets composited
+                                                       // as (near-)transparent, which looks exactly like a black screen even
+                                                       // though real pixel data was being rendered correctly underneath.
+                                                       // Force full opacity on the final presented frame to fix this on
+                                                       // every platform (harmless on PC/Vita, which never looked at this
+                                                       // alpha channel anyway).
+                                                       "    gl_FragColor = vec4(presentColor.rgb, 1.0);\n"
                                                        "}\n"
                                                        "#endif\n";
 #endif

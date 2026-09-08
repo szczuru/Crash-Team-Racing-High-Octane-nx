@@ -95,7 +95,17 @@ bool NativeRendererSwitch_InitContext(void)
 		EGL_RED_SIZE, 8,
 		EGL_GREEN_SIZE, 8,
 		EGL_BLUE_SIZE, 8,
-		EGL_ALPHA_SIZE, 8,
+		// NOTE: no EGL_ALPHA_SIZE requested for the window/NWindow surface
+		// itself - unlike a desktop window compositor (which ignores an
+		// application window's own framebuffer alpha), the Switch NWindow
+		// surface honours it, and the game's final presented frame carries
+		// PSX draw-mask bits in its alpha channel that are ~0 for most
+		// ordinary draws. An alpha-enabled surface would composite that as
+		// (near-)transparent - visually a black screen - even though the
+		// present shader now also forces alpha=1.0 on its own (see
+		// ctr_present_rgba_shader in native_renderer.c). Belt-and-suspenders:
+		// don't give the compositor an alpha channel to honour in the first
+		// place.
 		EGL_DEPTH_SIZE, 24,
 		EGL_STENCIL_SIZE, 8,
 		EGL_NONE
