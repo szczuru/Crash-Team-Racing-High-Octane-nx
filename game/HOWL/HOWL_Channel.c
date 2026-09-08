@@ -378,6 +378,10 @@ void Channel_ParseSongToChannels()
 			boolVolumeChange = true;
 		}
 
+#if defined(__SWITCH__)
+		printf("[CTR Native/Diag] Channel_ParseSongToChannels: song at %p, numSequences=%d\n", song, song->numSequences);
+		fflush(stdout);
+#endif
 		for (seqEntry = &song->CseqSequences[0]; seqEntry < &song->CseqSequences[song->numSequences]; seqEntry++)
 		{
 			seq = seqEntry[0];
@@ -417,8 +421,22 @@ void Channel_ParseSongToChannels()
 
 				// === need to work on this variable naming ===
 
+#if defined(__SWITCH__)
+				int diagNoteIterCount = 0;
+#endif
 				while (seq->NoteLength <= seq->NoteTimeElapsed)
 				{
+#if defined(__SWITCH__)
+					diagNoteIterCount++;
+					if (diagNoteIterCount > 1000)
+					{
+						printf("[CTR Native/Diag] Channel_ParseSongToChannels: giving up on note-advance loop after %d iterations "
+						       "(seq=%p NoteLength=%d NoteTimeElapsed=%d) - likely NoteLength==0 infinite loop\n",
+						       diagNoteIterCount, seq, seq->NoteLength, seq->NoteTimeElapsed);
+						fflush(stdout);
+						break;
+					}
+#endif
 					// if reached end, quit
 					if ((seq->flags & 1) == 0)
 					{
