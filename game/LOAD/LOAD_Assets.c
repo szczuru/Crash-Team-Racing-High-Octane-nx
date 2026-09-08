@@ -265,13 +265,50 @@ void LOAD_LangFile(struct BigHeader *bigfilePtr, int lang)
 	}
 
 	numStrings = lngFile->numStrings;
+
+#if defined(CTR_NATIVE)
+	// NOTE: on-disk .lng data is retail PS1-shaped: offsetToPtrArr points to
+	// a packed array of 4-byte relative offsets (one per string), because
+	// sizeof(char*) == 4 on the original 32-bit target. Reading that array
+	// directly as `char **` (8-byte stride on a 64-bit host such as
+	// Switch/AArch64) reads each pointer-sized slot across TWO of the
+	// on-disk 4-byte offsets, silently splicing two unrelated 32-bit values
+	// into one garbage 64-bit address - this is a stride mismatch, not a
+	// simple truncation, and produces a `strcpy` read from a wild pointer
+	// (observed on real Switch hardware as a silent hang/crash with no
+	// error, since GAMEPROG_ResetHighScores immediately strcpy's from every
+	// one of these "pointers"). Fix: read the on-disk offsets through their
+	// real 4-byte type (s32), and materialize the real, correctly-sized
+	// `char *` pointers into a separately allocated, natively-sized array.
+	{
+		s32 *fileOffsetArray = (s32 *)((u8 *)lngFile + lngFile->offsetToPtrArr);
+		static char **s_nativeLngStringPointers;
+		static int s_nativeLngStringCapacity;
+
+		if (s_nativeLngStringCapacity < numStrings)
+		{
+			free(s_nativeLngStringPointers);
+			s_nativeLngStringPointers = (char **)malloc((size_t)numStrings * sizeof(char *));
+			s_nativeLngStringCapacity = (s_nativeLngStringPointers != NULL) ? numStrings : 0;
+		}
+
+		if (s_nativeLngStringPointers == NULL)
+		{
+			return;
+		}
+
+		for (i = 0; i < numStrings; i++)
+		{
+			s_nativeLngStringPointers[i] = (char *)lngFile + fileOffsetArray[i];
+		}
+
+		strArray = s_nativeLngStringPointers;
+	}
+#else
 	// NOTE: (u32)lngFile truncates real pointers on 64-bit (Switch/AArch64);
 	// route the offset through a byte pointer instead (identical addresses
 	// on 32-bit hosts).
 	strArray = (char **)((u8 *)lngFile + lngFile->offsetToPtrArr);
-
-	sdata->numLngStrings = numStrings;
-	sdata->lngStrings = strArray;
 
 	for (i = 0; i < numStrings; i++)
 	{
@@ -282,6 +319,10 @@ void LOAD_LangFile(struct BigHeader *bigfilePtr, int lang)
 		// pointer, so the (uintptr_t) cast on the addend is intentional.
 		strArray[i] = (char *)lngFile + (uintptr_t)strArray[i];
 	}
+#endif
+
+	sdata->numLngStrings = numStrings;
+	sdata->lngStrings = strArray;
 #if defined(CTR_NATIVE)
 	NativeAudio_SetVoiceLanguage(lang);
 #elif BUILD == EurRetail
