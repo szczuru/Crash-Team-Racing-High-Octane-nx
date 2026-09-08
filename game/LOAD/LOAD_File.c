@@ -198,10 +198,23 @@ void LOAD_VramFileCallback(struct LoadQueueSlot *lqs)
 
 	struct VramHeader *vh = (struct VramHeader *)vramBuf;
 
+#if defined(__SWITCH__)
+	printf("[CTR Native/Diag] LOAD_VramFileCallback: enter, vramBuf=%p vramBuf[0]=%d\n", vramBuf, (vramBuf != NULL) ? vramBuf[0] : -1);
+	fflush(stdout);
+#endif
+
 	// if just one TIM
 	if ((vramBuf != NULL) && (vramBuf[0] != 0x20))
 	{
+#if defined(__SWITCH__)
+		printf("[CTR Native/Diag] LOAD_VramFileCallback: single TIM path, rect=(%d,%d,%d,%d)\n", vh->rect.x, vh->rect.y, vh->rect.w, vh->rect.h);
+		fflush(stdout);
+#endif
 		LoadImage(&vh->rect, VRAMHEADER_GETPIXLES(vh));
+#if defined(__SWITCH__)
+		printf("[CTR Native/Diag] LOAD_VramFileCallback: single TIM path, LoadImage returned\n");
+		fflush(stdout);
+#endif
 	}
 
 	// if multiple TIMs are packed together
@@ -213,8 +226,23 @@ void LOAD_VramFileCallback(struct LoadQueueSlot *lqs)
 		size = vramBuf[0];
 		vh = (struct VramHeader *)&vramBuf[1];
 
+#if defined(__SWITCH__)
+		int diagPackedCount = 0;
+#endif
 		while (size != 0)
 		{
+#if defined(__SWITCH__)
+			diagPackedCount++;
+			printf("[CTR Native/Diag] LOAD_VramFileCallback: packed TIM #%d, size=%d rect=(%d,%d,%d,%d)\n", diagPackedCount, size, vh->rect.x, vh->rect.y,
+			       vh->rect.w, vh->rect.h);
+			fflush(stdout);
+			if (diagPackedCount > 500)
+			{
+				printf("[CTR Native/Diag] LOAD_VramFileCallback: giving up after %d packed TIMs - real bug is elsewhere\n", diagPackedCount);
+				fflush(stdout);
+				break;
+			}
+#endif
 			LoadImage(&vh->rect, VRAMHEADER_GETPIXLES(vh));
 
 			// goto next
@@ -223,7 +251,16 @@ void LOAD_VramFileCallback(struct LoadQueueSlot *lqs)
 			size = vramBuf[0];
 			vh = (struct VramHeader *)&vramBuf[1];
 		}
+#if defined(__SWITCH__)
+		printf("[CTR Native/Diag] LOAD_VramFileCallback: packed TIM loop finished after %d TIM(s)\n", diagPackedCount);
+		fflush(stdout);
+#endif
 	}
+
+#if defined(__SWITCH__)
+	printf("[CTR Native/Diag] LOAD_VramFileCallback: exit\n");
+	fflush(stdout);
+#endif
 
 	// LOAD_NextQueuedFile waits 3 vsync frames before releasing the queue.
 	sdata->frameFinishedVRAM = sdata->gGT->frameTimer_VsyncCallback;
