@@ -206,25 +206,18 @@ void NativeRendererSwitch_ShutdownContext(void)
 	s_window = NULL;
 }
 
-/* TEMPORARY DIAGNOSTIC - remove once the black-screen root cause is
- * confirmed. Forces the real screen framebuffer (FBO 0) to solid red right
- * before every swap, to isolate whether eglSwapBuffers/the NWindow surface
- * itself displays anything at all, independent of the game's own render
- * pipeline (VRAM FBO -> present shader -> FBO 0). If the screen turns red,
- * the swap/surface/compositor path works fine and the bug is somewhere in
- * the game's own present pipeline (or upstream of it, e.g. nothing ever
- * reaching BeginScene/EndScene). If the screen stays black even with this,
- * the bug is at the EGL/NWindow/compositor level, before the game's
- * rendering code has any chance to run. */
-#define NATIVE_SWITCH_DEBUG_FORCE_RED 1
-
 void NativeRendererSwitch_SwapBuffers(void)
 {
-#if NATIVE_SWITCH_DEBUG_FORCE_RED
-	glBindFramebuffer(GL_FRAMEBUFFER, 0);
-	glClearColor(1.0f, 0.0f, 0.0f, 1.0f);
-	glClear(GL_COLOR_BUFFER_BIT);
-#endif
+	/* KRYTYCZNE: libnx wymaga regularnego wywoływania appletMainLoop(), żeby
+	 * przetwarzać komunikaty systemowe applet (focus/sleep/powiadomienia) -
+	 * każdy oficjalny przykład graficzny libnx (np.
+	 * switch-examples/graphics/opengl/simple_triangle) woła to w pętli
+	 * głównej razem z eglSwapBuffers. Bez tego bufor prezentacji (nvnflinger)
+	 * może nigdy nie odebrać zaprezentowanej klatki - eglSwapBuffers() wisi
+	 * w nieskończoność, co objawia się jako trwały czarny ekran, mimo że
+	 * kontekst EGL utworzył się poprawnie i cała gra działa dalej w tle.
+	 * Ten kod nigdzie wcześniej nie wołał appletMainLoop(). */
+	appletMainLoop();
 
 	/* Sprawdzamy zmianę trybu konsoli raz na klatkę - najtańszy i
 	 * najbardziej niezawodny moment, zaraz po prezentacji poprzedniej. */
