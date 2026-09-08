@@ -778,12 +778,20 @@ void StateZero()
 	// PAL SCES02105 calls it multiple times
 	LOAD_LangFile(sdata->ptrBigfile1, 1);
 #endif
+#if defined(__SWITCH__)
+	printf("[CTR Native/Diag] StateZero: after LOAD_LangFile, before GAMEPROG_NewGame_OnBoot\n");
+	fflush(stdout);
+#endif
 	GAMEPROG_NewGame_OnBoot();
 	gGT->overlayIndex_null_notUsed = 0;
 
 	gGT->levelID = NAUGHTY_DOG_CRATE;
 	// gGT->levelID = OXIDE_TRUE_ENDING;
 
+#if defined(__SWITCH__)
+	printf("[CTR Native/Diag] StateZero: after GAMEPROG_NewGame_OnBoot, before InitGeom\n");
+	fflush(stdout);
+#endif
 	InitGeom();
 	SetGeomOffset(0x100, 0x78); // width/2, height/2
 	SetGeomScreen(0x140);       // "distance" to screen, alters FOV
@@ -803,15 +811,35 @@ void StateZero()
 
 	PutDispEnv(&gGT->db[1].dispEnv);
 	PutDrawEnv(&gGT->db[1].drawEnv);
+#if defined(__SWITCH__)
+	printf("[CTR Native/Diag] StateZero: before first DrawSync(0)\n");
+	fflush(stdout);
+#endif
 	DrawSync(0);
+#if defined(__SWITCH__)
+	printf("[CTR Native/Diag] StateZero: after first DrawSync(0), before second LOAD_VramFile (0x1fd)\n");
+	fflush(stdout);
+#endif
 
 	// Load Intro TIM for "SCEA Presents" from VRAM file
 	LOAD_VramFile(sdata->ptrBigfile1, 0x1fd, NULL, &vramSize, -1);
+#if defined(__SWITCH__)
+	printf("[CTR Native/Diag] StateZero: after second LOAD_VramFile, before MainInit_VRAMDisplay\n");
+	fflush(stdout);
+#endif
 	MainInit_VRAMDisplay();
+#if defined(__SWITCH__)
+	printf("[CTR Native/Diag] StateZero: after MainInit_VRAMDisplay, before howl_InitGlobals\n");
+	fflush(stdout);
+#endif
 
 	// \SOUNDS\KART.HWL;1
 	// NOTE(aalhendi): ASM-verified NTSC-U 926 0x8003c8e0-0x8003c928 for startup HOWL/music/XA setup.
 	howl_InitGlobals(data.kartHwlPath);
+#if defined(__SWITCH__)
+	printf("[CTR Native/Diag] StateZero: after howl_InitGlobals, before VSyncCallback/Music_SetIntro/CseqMusic/Music_Start\n");
+	fflush(stdout);
+#endif
 
 	VSyncCallback(MainDrawCb_Vsync);
 
@@ -819,9 +847,17 @@ void StateZero()
 	CseqMusic_StopAll();
 	CseqMusic_Start(CSEQ_SONG_LEVEL, 0, NULL, 0, 0);
 	Music_Start(0);
+#if defined(__SWITCH__)
+	printf("[CTR Native/Diag] StateZero: before CDSYS_XAPlay\n");
+	fflush(stdout);
+#endif
 
 	// "Start your engines, for Sony Computer..."
 	CDSYS_XAPlay(CDSYS_XA_TYPE_EXTRA, 0x50);
+#if defined(__SWITCH__)
+	printf("[CTR Native/Diag] StateZero: after CDSYS_XAPlay, XA_State=%d, entering wait loop\n", sdata->XA_State);
+	fflush(stdout);
+#endif
 
 	while (sdata->XA_State != 0)
 	{
@@ -839,6 +875,10 @@ void StateZero()
 #endif
 		CDSYS_XAPauseAtEnd();
 	}
+#if defined(__SWITCH__)
+	printf("[CTR Native/Diag] StateZero: exited XA wait loop, before DecalGlobal_Clear\n");
+	fflush(stdout);
+#endif
 
 	DecalGlobal_Clear(gGT);
 
