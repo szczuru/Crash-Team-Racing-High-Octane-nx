@@ -62,6 +62,53 @@ global_variable struct NativeCDReadWorker s_nativeCdReadWorker;
 
 int boolDecodeXaDuringVsyncCallback;
 
+#if defined(__SWITCH__)
+/* NOTE(aalhendi): printf()/nxlinkStdio's socket-backed stdout is not safe to
+ * call concurrently from multiple threads - doing so from the CD read worker
+ * thread (previous diagnostic attempt) corrupted the nxlink connection
+ * ("socket error 0x0 on poll" on the host, then silent hang/crash on
+ * console). Keep worker-thread diagnostics as plain counters written under
+ * the existing worker mutex, and have the main thread's heartbeat (which
+ * already prints safely from the main thread) report them instead. */
+global_variable s32 s_diagCdWorkerReadsStarted;
+global_variable s32 s_diagCdWorkerReadsFinished;
+global_variable s32 s_diagCdWorkerLastFileIndex;
+global_variable s32 s_diagCdWorkerLastSuccess;
+global_variable s32 s_diagCdPumpDispatchCount;
+
+void NativeCD_DiagGetCounters(int *readsStarted, int *readsFinished, int *lastFileIndex, int *lastSuccess, int *pumpDispatchCount)
+{
+	if (s_nativeCdReadWorker.mutex != NULL)
+	{
+		SDL_LockMutex(s_nativeCdReadWorker.mutex);
+	}
+	if (readsStarted != NULL)
+	{
+		*readsStarted = s_diagCdWorkerReadsStarted;
+	}
+	if (readsFinished != NULL)
+	{
+		*readsFinished = s_diagCdWorkerReadsFinished;
+	}
+	if (lastFileIndex != NULL)
+	{
+		*lastFileIndex = s_diagCdWorkerLastFileIndex;
+	}
+	if (lastSuccess != NULL)
+	{
+		*lastSuccess = s_diagCdWorkerLastSuccess;
+	}
+	if (pumpDispatchCount != NULL)
+	{
+		*pumpDispatchCount = s_diagCdPumpDispatchCount;
+	}
+	if (s_nativeCdReadWorker.mutex != NULL)
+	{
+		SDL_UnlockMutex(s_nativeCdReadWorker.mutex);
+	}
+}
+#endif
+
 internal s32 NativeCD_NormalizeFilename(char *dst, s32 dstCount, const char *src)
 {
 	NativeStr8 filename = NativeStr8_FromCString(src);
@@ -275,11 +322,6 @@ internal int SDLCALL NativeCD_ReadWorkerThread(void *unused)
 	(void)unused;
 	SDL_SetCurrentThreadPriority(SDL_THREAD_PRIORITY_LOW);
 
-#if defined(__SWITCH__)
-	printf("[CTR Native/Diag] NativeCD_ReadWorkerThread: worker thread started\n");
-	fflush(stdout);
-#endif
-
 	for (;;)
 	{
 		s32 fileIndex;
@@ -306,25 +348,22 @@ internal int SDLCALL NativeCD_ReadWorkerThread(void *unused)
 		destination = s_nativeCdReadWorker.destination;
 		s_nativeCdReadWorker.pending = 0;
 		s_nativeCdReadWorker.busy = 1;
+#if defined(__SWITCH__)
+		s_diagCdWorkerReadsStarted++;
+		s_diagCdWorkerLastFileIndex = fileIndex;
+#endif
 		SDL_UnlockMutex(s_nativeCdReadWorker.mutex);
 
-#if defined(__SWITCH__)
-		printf("[CTR Native/Diag] NativeCD_ReadWorkerThread: reading fileIndex=%d firstSector=%d sectorCount=%d dst=%p\n", fileIndex, firstSector,
-		       sectorCount, destination);
-		fflush(stdout);
-#endif
-
 		success = NativeCD_ReadSectorsAt(fileIndex, firstSector, sectorCount, destination);
-
-#if defined(__SWITCH__)
-		printf("[CTR Native/Diag] NativeCD_ReadWorkerThread: read finished, success=%d\n", success);
-		fflush(stdout);
-#endif
 
 		SDL_LockMutex(s_nativeCdReadWorker.mutex);
 		s_nativeCdReadWorker.busy = 0;
 		s_nativeCdReadWorker.success = success;
 		s_nativeCdReadWorker.complete = 1;
+#if defined(__SWITCH__)
+		s_diagCdWorkerReadsFinished++;
+		s_diagCdWorkerLastSuccess = success;
+#endif
 		SDL_SignalCondition(s_nativeCdReadWorker.condition);
 		SDL_UnlockMutex(s_nativeCdReadWorker.mutex);
 	}
@@ -424,14 +463,9 @@ void NativeCD_PumpCallbacks(void)
 	if (callback != NULL)
 	{
 #if defined(__SWITCH__)
-		printf("[CTR Native/Diag] NativeCD_PumpCallbacks: dispatching callback=%p success=%d\n", (void *)callback, success);
-		fflush(stdout);
+		s_diagCdPumpDispatchCount++;
 #endif
 		callback(success ? CdlComplete : CdlDiskError, NULL);
-#if defined(__SWITCH__)
-		printf("[CTR Native/Diag] NativeCD_PumpCallbacks: callback returned\n");
-		fflush(stdout);
-#endif
 	}
 }
 

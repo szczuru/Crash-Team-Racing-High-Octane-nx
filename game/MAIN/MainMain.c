@@ -5,6 +5,9 @@
 #include <platform/native_replay_scheduler.h>
 #include <platform/native_savestate.h>
 #endif
+#if defined(__SWITCH__)
+#include <platform/native_cd.h>
+#endif
 
 extern int cfg_language;
 
@@ -115,10 +118,13 @@ u32 main(void)
 			s_diagHeartbeat++;
 			if ((s_diagHeartbeat % 180) == 0)
 			{
+				int cdReadsStarted, cdReadsFinished, cdLastFileIndex, cdLastSuccess, cdPumpDispatchCount;
+				NativeCD_DiagGetCounters(&cdReadsStarted, &cdReadsFinished, &cdLastFileIndex, &cdLastSuccess, &cdPumpDispatchCount);
 				printf("[CTR Native/Diag] CTR_Main heartbeat: mainGameState=%d Loading.stage=%d load_inProgress=%d queueReady=%d "
-				       "queueLength=%d queueRetry=%d XA_State=%d\n",
+				       "queueLength=%d queueRetry=%d XA_State=%d | cdReadsStarted=%d cdReadsFinished=%d cdLastFileIndex=%d cdLastSuccess=%d "
+				       "cdPumpDispatchCount=%d\n",
 				       sdata->mainGameState, sdata->Loading.stage, sdata->load_inProgress, sdata->queueReady, sdata->queueLength, sdata->queueRetry,
-				       sdata->XA_State);
+				       sdata->XA_State, cdReadsStarted, cdReadsFinished, cdLastFileIndex, cdLastSuccess, cdPumpDispatchCount);
 				fflush(stdout);
 			}
 		}
