@@ -44,11 +44,6 @@ void howl_PlayAudio_Update()
 	struct ChannelStats *curr, *backupNext;
 	u8 statFlags;
 
-#if defined(__SWITCH__)
-	printf("[CTR Native/Diag] howl_PlayAudio_Update: enter, boolAudioEnabled=%d\n", sdata->boolAudioEnabled);
-	fflush(stdout);
-#endif
-
 	if (sdata->boolAudioEnabled != 0)
 	{
 		// if copy exists, make audio fade slowly
@@ -65,23 +60,8 @@ void howl_PlayAudio_Update()
 			sdata->criticalSectionCount = 0;
 		}
 
-#if defined(__SWITCH__)
-		printf("[CTR Native/Diag] howl_PlayAudio_Update: before channelTaken loop, first=%p\n", sdata->channelTaken.first);
-		fflush(stdout);
-		int diagChannelIterCount = 0;
-#endif
 		for (curr = (struct ChannelStats *)sdata->channelTaken.first; curr != NULL; curr = backupNext)
 		{
-#if defined(__SWITCH__)
-			diagChannelIterCount++;
-			if (diagChannelIterCount > 100)
-			{
-				printf("[CTR Native/Diag] howl_PlayAudio_Update: giving up on channelTaken loop after %d iterations - possible corrupt/circular list\n",
-				       diagChannelIterCount);
-				fflush(stdout);
-				break;
-			}
-#endif
 			backupNext = curr->next;
 
 			// if sound has no timer (plays inf)
@@ -107,23 +87,11 @@ void howl_PlayAudio_Update()
 			LIST_RemoveMember(&sdata->channelTaken, (struct Item *)curr);
 			LIST_AddBack(&sdata->channelFree, (struct Item *)curr);
 		}
-#if defined(__SWITCH__)
-		printf("[CTR Native/Diag] howl_PlayAudio_Update: after channelTaken loop (%d iters), before Channel_ParseSongToChannels\n", diagChannelIterCount);
-		fflush(stdout);
-#endif
 
 		Channel_ParseSongToChannels();
-#if defined(__SWITCH__)
-		printf("[CTR Native/Diag] howl_PlayAudio_Update: after Channel_ParseSongToChannels, before Channel_UpdateChannels\n");
-		fflush(stdout);
-#endif
 	}
 
 	Channel_UpdateChannels();
-#if defined(__SWITCH__)
-	printf("[CTR Native/Diag] howl_PlayAudio_Update: exit\n");
-	fflush(stdout);
-#endif
 }
 
 // NOTE(aalhendi): ASM-verified NTSC-U 926 0x8002c34c-0x8002c424

@@ -88,17 +88,7 @@ void howl_InitChannelAttr_Music(struct SongSeq *seq, struct ChannelAttr *attr, i
 	{
 		struct SampleInstrument *longSample = &sdata->ptrCseqLongSamples[seq->instrumentID];
 
-#if defined(__SWITCH__)
-		printf("[CTR Native/Diag] howl_InitChannelAttr_Music: instrument path, ptrCseqLongSamples=%p instrumentID=%d longSample=%p "
-		       "basePitch=%d index=%d distort=%d\n",
-		       sdata->ptrCseqLongSamples, seq->instrumentID, longSample, longSample->basePitch, index, seq->distort);
-		fflush(stdout);
-#endif
 		pitch = howl_InstrumentPitch(longSample->basePitch, index, seq->distort);
-#if defined(__SWITCH__)
-		printf("[CTR Native/Diag] howl_InitChannelAttr_Music: after howl_InstrumentPitch, pitch=%d\n", pitch);
-		fflush(stdout);
-#endif
 
 		// NOTE: spuAddr is a small SPU-RAM offset (not a real CPU pointer);
 		// route through uintptr_t to avoid the int->pointer-width warning.
@@ -198,23 +188,9 @@ void cseq_opcode05_noteon(struct SongSeq *seq)
 
 	currNote = seq->currNote;
 
-#if defined(__SWITCH__)
-	printf("[CTR Native/Diag] cseq_opcode05_noteon: before howl_InitChannelAttr_Music, currNote[1]=%d currNote[2]=%d seq->flags=%d "
-	       "seq->instrumentID=%d\n",
-	       currNote[1], currNote[2], seq->flags, seq->instrumentID);
-	fflush(stdout);
-#endif
 	howl_InitChannelAttr_Music(seq, &attr, currNote[1], currNote[2]);
-#if defined(__SWITCH__)
-	printf("[CTR Native/Diag] cseq_opcode05_noteon: after howl_InitChannelAttr_Music, before Channel_AllocSlot\n");
-	fflush(stdout);
-#endif
 
 	stats = Channel_AllocSlot(HOWL_CHANNEL_UPDATE_ALL_ATTRS, &attr);
-#if defined(__SWITCH__)
-	printf("[CTR Native/Diag] cseq_opcode05_noteon: after Channel_AllocSlot, stats=%p\n", stats);
-	fflush(stdout);
-#endif
 
 	if (stats == 0)
 	{

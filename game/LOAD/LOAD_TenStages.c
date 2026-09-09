@@ -88,6 +88,13 @@ int LOAD_TenStages(struct GameTracker *gGT, int loadingStage, struct BigHeader *
 				// the point retail normally reaches while loading the ND crate.
 				// Present every wait tick so both host swapchain images are
 				// overwritten with copyright instead of briefly revealing SCEA.
+#if defined(__SWITCH__)
+				{
+					int diagNdBoxLoopIters = 0;
+					printf("[CTR Native/Diag] LOAD_TenStages case 0: entering ND-Box wait loop, flags=%d timeSpentPlaying=%d target=%d\n",
+					       sdata->songPool[0].flags, sdata->songPool[0].timeSpentPlaying, LOAD_NATIVE_NDBOX_INTRO_SONG_SYNC_TIME);
+					fflush(stdout);
+#endif
 				while (((sdata->songPool[0].flags & 3) == 1) && (sdata->songPool[0].timeSpentPlaying < LOAD_NATIVE_NDBOX_INTRO_SONG_SYNC_TIME))
 				{
 					VSync(0);
@@ -97,7 +104,31 @@ int LOAD_TenStages(struct GameTracker *gGT, int loadingStage, struct BigHeader *
 						break;
 					}
 					Platform_PresentVRAMDisplay();
+#if defined(__SWITCH__)
+					diagNdBoxLoopIters++;
+					if ((diagNdBoxLoopIters % 60) == 0)
+					{
+						printf("[CTR Native/Diag] LOAD_TenStages case 0: ND-Box wait loop iter=%d, flags=%d timeSpentPlaying=%d target=%d\n",
+						       diagNdBoxLoopIters, sdata->songPool[0].flags, sdata->songPool[0].timeSpentPlaying,
+						       LOAD_NATIVE_NDBOX_INTRO_SONG_SYNC_TIME);
+						fflush(stdout);
+					}
+					if (diagNdBoxLoopIters > 6000)
+					{
+						printf("[CTR Native/Diag] LOAD_TenStages case 0: giving up on ND-Box wait loop after %d iterations, forcing exit\n",
+						       diagNdBoxLoopIters);
+						fflush(stdout);
+						gNativeBootSkipRequested = 1;
+						break;
+					}
+#endif
 				}
+#if defined(__SWITCH__)
+					printf("[CTR Native/Diag] LOAD_TenStages case 0: exited ND-Box wait loop after %d iterations, flags=%d timeSpentPlaying=%d\n",
+					       diagNdBoxLoopIters, sdata->songPool[0].flags, sdata->songPool[0].timeSpentPlaying);
+					fflush(stdout);
+				}
+#endif
 #endif
 			}
 
