@@ -100,7 +100,7 @@ void CTR_CycleTex_AllModels(u32 numModels, struct Model **pModelArray, int timer
 		// iterate over all model headers
 		for (int j = 0; j < pModel->numHeaders; j++)
 		{
-			pHeader = &pModel->headers[j];
+			pHeader = &Model_GetHeaders(pModel)[j];
 
 			if ((pHeader->animtex != NULL) && ((pHeader->flags & 2) == 0))
 			{

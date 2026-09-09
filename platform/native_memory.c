@@ -38,7 +38,75 @@ union NativeScratchpadStorage
 
 CTR_STATIC_ASSERT(sizeof(union NativeScratchpadStorage) == CTR_SCRATCHPAD_SIZE);
 
+#if defined(__SWITCH__)
+// NOTE(aalhendi): Retail's Load/PtrMap fixups (LOAD_RunPtrMap and friends)
+// store every fixed-up "pointer" inside loaded file data (models, levels,
+// instances, ...) as a 4-byte "retail 32-bit RAM address" - this is the
+// on-disk/in-memory format and cannot be widened without corrupting
+// adjacent data or shifting struct layouts relative to the file bytes.
+// On 64-bit Switch, those 4-byte slots are computed by truncating a REAL
+// host pointer (this arena's base) to its low 32 bits. That truncation is
+// exactly correct - and fully reversible - IF this arena is guaranteed to
+// never straddle a 4GiB boundary, because then every address inside the
+// arena shares the same upper 32 bits, which we cache once here and splice
+// back onto any 4-byte slot value to reconstruct the real pointer (see
+// NativeMempack_ReconstructPointer below). Guaranteeing no 4GiB-boundary
+// crossing only requires the arena to be aligned to its own size (a power
+// of two): if the arena's base address is a multiple of its size S, and S
+// evenly divides 2^32 (true for any power-of-two S <= 4GiB), then
+// (base mod 2^32) is itself a multiple of S, so (base mod 2^32) + S <= 2^32
+// - the whole arena's low-32-bits range never wraps. This avoids needing
+// any privileged/kernel-level control over where the memory lands (which
+// is not available to homebrew - svcMapMemory can only target the Stack
+// region on 2.0.0+), and only requires a self-aligned heap allocation.
+global_variable u8 *s_mempackMemory;
+global_variable void *s_mempackRawAlloc;
+global_variable uintptr_t s_mempackArenaHighBits;
+
+static u8 *NativeMemory_AllocAlignedMempackBuffer(size_t size)
+{
+	void *raw;
+	uintptr_t rawAddr;
+	uintptr_t alignedAddr;
+
+	// Over-allocate by `size` so an aligned block of `size` bytes is always
+	// found inside [raw, raw + size + size). `size` is a power of two
+	// (CTR_NATIVE_MEMPACK_BUFFER_SIZE == 0x200000), so a plain mask works.
+	raw = malloc(size + size);
+	if (raw == NULL)
+	{
+		return NULL;
+	}
+
+	rawAddr = (uintptr_t)raw;
+	alignedAddr = (rawAddr + (size - 1)) & ~(uintptr_t)(size - 1);
+
+	// Intentionally never freed: this backing store lives for the entire
+	// process lifetime (same as the old static array it replaces).
+	s_mempackRawAlloc = raw;
+	return (u8 *)alignedAddr;
+}
+
+void *NativeMempack_ReconstructPointer(u32 slotValue)
+{
+	if (slotValue == 0)
+	{
+		return NULL;
+	}
+
+	return (void *)(s_mempackArenaHighBits | (uintptr_t)slotValue);
+}
+
+u32 NativeMempack_TruncatePointer(const void *ptr)
+{
+	// NOTE: intentionally narrows - callers store this into a retail 4-byte
+	// slot. Safe as long as `ptr` lives inside the (4GiB-boundary-safe)
+	// mempack arena; NativeMempack_ReconstructPointer reverses it exactly.
+	return (u32)(uintptr_t)ptr;
+}
+#else
 global_variable char s_mempackMemory[CTR_NATIVE_MEMPACK_BUFFER_SIZE];
+#endif
 global_variable struct PlatformMempackArena s_mempackArena;
 global_variable union NativeScratchpadStorage s_scratchpadMemory;
 u8 *gCTRNativeScratchpadBase;
@@ -62,7 +130,26 @@ void Platform_ConfigureMempackArena(void)
 
 const struct PlatformMempackArena *Platform_InitMempackArena(void)
 {
-	memset(s_mempackMemory, 0, sizeof(s_mempackMemory));
+#if defined(__SWITCH__)
+	if (s_mempackMemory == NULL)
+	{
+		s_mempackMemory = NativeMemory_AllocAlignedMempackBuffer(CTR_NATIVE_MEMPACK_BUFFER_SIZE);
+		if (s_mempackMemory == NULL)
+		{
+			fprintf(stderr, "[CTR Native] FATAL: failed to allocate %u-byte aligned mempack arena\n", (unsigned)CTR_NATIVE_MEMPACK_BUFFER_SIZE);
+			abort();
+		}
+
+		// Cache the arena's upper address bits now, once, while we still
+		// have the real pointer. See the NOTE above s_mempackMemory for why
+		// this alignment guarantees a single, unchanging high-bits value
+		// for every address inside the arena.
+		s_mempackArenaHighBits = (uintptr_t)s_mempackMemory & ~(uintptr_t)0xffffffffu;
+		printf("[CTR Native] MEMPACK arena allocated at %p (aligned to 0x%x, high bits 0x%llx)\n", (void *)s_mempackMemory,
+		       (unsigned)CTR_NATIVE_MEMPACK_BUFFER_SIZE, (unsigned long long)s_mempackArenaHighBits);
+	}
+#endif
+	memset(s_mempackMemory, 0, CTR_NATIVE_MEMPACK_BUFFER_SIZE);
 	Platform_ConfigureMempackArena();
 #if defined(CTR_INTERNAL)
 	NativeCheckpoint_OnMempackArenaReset();
@@ -83,7 +170,7 @@ void *Platform_GetMempackBacking(void)
 
 int Platform_GetMempackBackingSize(void)
 {
-	return (int)sizeof(s_mempackMemory);
+	return (int)CTR_NATIVE_MEMPACK_BUFFER_SIZE;
 }
 
 void Platform_RepairResidentPointers(s32 activeMempackIndex)

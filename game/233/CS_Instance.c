@@ -27,7 +27,7 @@ void CS_Instance_GetFrameData(struct Instance *inst, int animIndex, u32 animFram
 	int scaleX, scaleY, scaleZ;
 	int deltaDX, deltaDY, deltaDZ;
 
-	headers = inst->model->headers;
+	headers = Model_GetHeaders(inst->model);
 	ptrAnim = headers->ptrAnimations[animIndex];
 
 	if ((int)animFrame < 0)
@@ -155,7 +155,7 @@ int CS_Instance_GetNumAnimFrames(struct Instance *modelInst, int animIndex, int 
 		return 0;
 	}
 
-	header = &model->headers[LOD];
+	header = &Model_GetHeaders(model)[LOD];
 	if (header == NULL)
 	{
 		return 0;

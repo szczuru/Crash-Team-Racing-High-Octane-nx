@@ -3,6 +3,9 @@
 #if defined(CTR_NATIVE) && defined(CTR_INTERNAL)
 #include <platform/native_checkpoint.h>
 #endif
+#if defined(__SWITCH__)
+#include <platform/native_memory.h>
+#endif
 
 // NOTE(aalhendi): ASM-verified NTSC-U 926 0x800326b4-0x80032700.
 void LOAD_RunPtrMap(char *origin, int *patchArr, int numPtrs)
@@ -12,12 +15,32 @@ void LOAD_RunPtrMap(char *origin, int *patchArr, int numPtrs)
 	for (ptrCurrOffset = &patchArr[0]; ptrCurrOffset < &patchArr[numPtrs]; ptrCurrOffset++)
 	{
 		int offset = (*ptrCurrOffset >> 2) << 2;
-		// NOTE: (int)origin truncates real pointers on 64-bit
-		// (Switch/AArch64). This slot itself stores a relative offset (not
-		// yet a real pointer) being fixed up into an absolute one relative
-		// to `origin` - route through (uintptr_t) instead of (int), which
-		// keeps the exact same values on 32-bit hosts.
+		// NOTE(aalhendi): Each patched slot is a 4-byte "retail 32-bit RAM
+		// address" packed tightly against adjacent file data (other struct
+		// fields or array elements, with no padding for a wider pointer) -
+		// this write must stay exactly 4 bytes wide, or it corrupts whatever
+		// follows the slot in the file's byte layout.
+		//
+		// On Switch, `origin` is a real 64-bit host pointer, so a naive
+		// (int)(uintptr_t)origin truncation would normally lose the upper
+		// bits. It does NOT here: `origin` always points inside the mempack
+		// arena (see NativeMempack_ReconstructPointer/TruncatePointer in
+		// platform/native_memory.c), which is allocated self-aligned to its
+		// own power-of-two size specifically so it can never straddle a
+		// 4GiB boundary - every address inside it shares the same upper 32
+		// bits. That makes this truncation exactly reversible: any struct
+		// field that stores one of these patched slots must be declared as
+		// `u32` (not a real pointer - see `struct Model::headers_slot` for
+		// the pattern) and read back through
+		// NativeMempack_ReconstructPointer() instead of being dereferenced
+		// directly. This preserves the retail 4-byte file layout everywhere
+		// (no offsets shift, no adjacent data gets clobbered) while still
+		// producing a fully valid 64-bit pointer at the point of use.
+#if defined(__SWITCH__)
+		*(int *)&origin[offset] = *(int *)&origin[offset] + (int)NativeMempack_TruncatePointer(origin);
+#else
 		*(int *)&origin[offset] = *(int *)&origin[offset] + (int)(uintptr_t)origin;
+#endif
 #if defined(CTR_NATIVE) && defined(CTR_INTERNAL)
 		NativeCheckpoint_RegisterPointerSlot(&origin[offset]);
 #endif

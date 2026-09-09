@@ -147,7 +147,7 @@ void RB_Blowup_Init(struct Instance *weaponInst)
 	shockwaveInst->matrix.t[1] = weaponInst->matrix.t[1];
 	shockwaveInst->matrix.t[2] = weaponInst->matrix.t[2];
 
-	headers = shockwaveInst->model->headers;
+	headers = Model_GetHeaders(shockwaveInst->model);
 
 	// set flag to always point to camera
 	headers[0].flags |= 2;

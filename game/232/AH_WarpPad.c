@@ -121,14 +121,14 @@ void AH_WarpPad_AllWarppadNum()
 		if ((wp->inst[2] != 0) && (wp->digit1s != 0) && (wp->digit1s != 9))
 		{
 			struct Instance *inst = wp->inst[2];
-			struct ModelHeader *mh = &inst->model->headers[0];
+			struct ModelHeader *mh = &Model_GetHeaders(inst->model)[0];
 			AH_WarpPad_SetNumModelData(inst, &mh[wp->digit1s - 1]);
 		}
 
 		if ((wp->inst[3] != 0) && (wp->digit10s != 0))
 		{
 			struct Instance *inst = wp->inst[3];
-			struct ModelHeader *mh = &inst->model->headers[0];
+			struct ModelHeader *mh = &Model_GetHeaders(inst->model)[0];
 			AH_WarpPad_SetNumModelData(inst, mh);
 		}
 	}
@@ -1484,7 +1484,7 @@ void AH_WarpPad_LInB(struct Instance *inst)
 	CTR_SET_VEC3(newInst->scale.v, AH_WP_STANDARD_ITEM_SCALE, AH_WP_STANDARD_ITEM_SCALE, AH_WP_STANDARD_ITEM_SCALE);
 
 	// always face camera
-	newInst->model->headers[0].flags |= 1;
+	Model_GetHeaders(newInst->model)[0].flags |= 1;
 
 	warppadObj->inst[WPIS_CLOSED_X] = newInst;
 
@@ -1505,7 +1505,7 @@ void AH_WarpPad_LInB(struct Instance *inst)
 		// always face camera
 		for (i = 0; i < newInst->model->numHeaders; i++)
 		{
-			newInst->model->headers[i].flags |= 1;
+			Model_GetHeaders(newInst->model)[i].flags |= 1;
 		}
 
 		warppadObj->inst[WPIS_CLOSED_10S] = newInst;
@@ -1537,7 +1537,7 @@ void AH_WarpPad_LInB(struct Instance *inst)
 	// always face camera
 	for (i = 0; i < newInst->model->numHeaders; i++)
 	{
-		newInst->model->headers[i].flags |= 1;
+		Model_GetHeaders(newInst->model)[i].flags |= 1;
 	}
 
 	warppadObj->inst[WPIS_CLOSED_1S] = newInst;

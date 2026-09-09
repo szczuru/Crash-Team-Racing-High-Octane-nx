@@ -61,7 +61,7 @@ void RB_Baron_ThTick(struct Thread *t)
 		return;
 	}
 
-	spawn = &level->ptrSpawnType2_PosRot[0];
+	spawn = &Level_GetptrSpawnType2_PosRot(level)[0];
 	pointIndex = (baronObj->pointIndex + 1) % spawn->numCoords;
 	baronObj->pointIndex = pointIndex;
 	if (modelID == DYNAMIC_DRUM)
@@ -142,7 +142,7 @@ void RB_Baron_LInB(struct Instance *inst)
 
 	if (inst->name[strlen(inst->name) - 1] == '0')
 	{
-		pointIndex = sdata->gGT->level1->ptrSpawnType2->numCoords / 2;
+		pointIndex = Level_GetptrSpawnType2(sdata->gGT->level1)->numCoords / 2;
 	}
 
 	baronObj->pointIndex = pointIndex;

@@ -261,7 +261,7 @@ void Level_AmbientSound(void)
 
 		if (spawnIndex < level->numSpawnType2)
 		{
-			struct SpawnType2 *spawn = &level->ptrSpawnType2[spawnIndex];
+			struct SpawnType2 *spawn = &Level_GetptrSpawnType2(level)[spawnIndex];
 
 			if (spawn->numCoords > 9)
 			{

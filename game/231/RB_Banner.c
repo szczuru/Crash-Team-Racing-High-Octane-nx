@@ -214,7 +214,7 @@ void RB_Banner_ThTick(struct Thread *t)
 			return;
 		}
 #endif
-		RB_Banner_Animate_Play(t->inst->model->headers, banner->numVertices);
+		RB_Banner_Animate_Play(Model_GetHeaders(t->inst->model), banner->numVertices);
 	}
 }
 
@@ -257,7 +257,7 @@ void RB_Banner_LInB(struct Instance *inst)
 	}
 
 	inst->model = model;
-	banner->numVertices = RB_Banner_Animate_Init(model->headers);
+	banner->numVertices = RB_Banner_Animate_Init(Model_GetHeaders(model));
 	if (banner->numVertices == 0)
 	{
 		return;
@@ -265,7 +265,7 @@ void RB_Banner_LInB(struct Instance *inst)
 
 	for (int i = 0; i < 0x40; i++)
 	{
-		u8 *color = (u8 *)&model->headers->ptrColors[i];
+		u8 *color = (u8 *)&Model_GetHeaders(model)->ptrColors[i];
 		int value = (MATH_Sin((u32)i << 7) >> 6) + 0x80;
 
 		if (gGT->numPlyrCurrGame >= 4)

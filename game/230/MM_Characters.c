@@ -408,9 +408,9 @@ internal struct Model *MM_Characters_GetOxideMenuModel(void)
 
 		s_oxideCharacterSelectModel = (struct Model *)modelBuf;
 
-		if ((s_oxideCharacterSelectModel->headers != NULL) && (s_oxideCharacterSelectModel->numHeaders > 0))
+		if ((Model_GetHeaders(s_oxideCharacterSelectModel) != NULL) && (s_oxideCharacterSelectModel->numHeaders > 0))
 		{
-			struct ModelHeader *header = &s_oxideCharacterSelectModel->headers[0];
+			struct ModelHeader *header = &Model_GetHeaders(s_oxideCharacterSelectModel)[0];
 			header->scale.x = (header->scale.x * 5) >> 3;
 			header->scale.y = (header->scale.y * 5) >> 3;
 			header->scale.z = (header->scale.z * 5) >> 3;
@@ -611,7 +611,7 @@ struct Model *MM_Characters_GetModelByName(const char *name)
 		return NULL;
 	}
 
-	models = level1->ptrModelsPtrArray;
+	models = Level_GetptrModelsPtrArray(level1);
 	if (models == NULL)
 	{
 		return NULL;

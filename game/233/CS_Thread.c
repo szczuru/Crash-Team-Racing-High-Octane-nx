@@ -618,7 +618,7 @@ processOpcode:
 		if (instance != 0)
 		{
 			int numHeaders = (int)instance->model->numHeaders;
-			if ((numHeaders != 0) && (modelHeader = instance->model->headers, modelHeader != 0))
+			if ((numHeaders != 0) && (modelHeader = Model_GetHeaders(instance->model), modelHeader != 0))
 			{
 				lodIndex = opcodeMeta->arg1.i;
 				lodIndexState = lodIndex;
@@ -1132,7 +1132,7 @@ void CS_Thread_MoveOnPath(struct Thread *t)
 			return;
 		}
 
-		spawnEntry = &level->ptrSpawnType2[pathIndex];
+		spawnEntry = &Level_GetptrSpawnType2(level)[pathIndex];
 		pathPoints = spawnEntry->positions;
 
 		if (pathPoints == 0)
@@ -1196,7 +1196,7 @@ void CS_Thread_MoveOnPath(struct Thread *t)
 			return;
 		}
 
-		spawnEntry = &level->ptrSpawnType2_PosRot[pathIndex];
+		spawnEntry = &Level_GetptrSpawnType2_PosRot(level)[pathIndex];
 		posRot = spawnEntry->posRot;
 
 		if (posRot == 0)
@@ -1233,7 +1233,7 @@ void CS_Thread_MoveOnPath(struct Thread *t)
 			return;
 		}
 
-		spawnEntry = level->ptrSpawnType2;
+		spawnEntry = Level_GetptrSpawnType2(level);
 		pathPoints = spawnEntry->positions;
 
 		if (pathPoints == 0)

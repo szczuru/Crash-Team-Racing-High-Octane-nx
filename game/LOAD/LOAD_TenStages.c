@@ -552,14 +552,14 @@ int LOAD_TenStages(struct GameTracker *gGT, int loadingStage, struct BigHeader *
 		struct Level *lev = sdata->ptrLevelFile;
 
 		gGT->level1 = lev;
-		gGT->visMem1 = lev->visMem;
+		gGT->visMem1 = Level_GetvisMem(lev);
 #if defined(CTR_NATIVE)
 		NativeReverseTrack_ApplyToLevel(lev);
 #endif
 
 		if (lev != 0)
 		{
-			DecalGlobal_Store(gGT, lev->levTexLookup);
+			DecalGlobal_Store(gGT, Level_GetlevTexLookup(lev));
 		}
 
 		DebugFont_Init(gGT);
@@ -567,7 +567,7 @@ int LOAD_TenStages(struct GameTracker *gGT, int loadingStage, struct BigHeader *
 		// if level is not nullptr
 		if (lev != 0)
 		{
-			LibraryOfModels_Store(gGT, lev->numModels, lev->ptrModelsPtrArray);
+			LibraryOfModels_Store(gGT, lev->numModels, Level_GetptrModelsPtrArray(lev));
 
 			// NOTE: ptrCircle/ptrClod/ptrDustpuff/ptrSmoking/ptrSparkle are
 			// `u32` (retail 32-bit RAM address slots) - route the round-trip

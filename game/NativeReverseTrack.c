@@ -296,7 +296,7 @@ struct HighScoreTrack *NativeReverseTrack_GetHighScoreTrack(s16 logicalId)
 
 static void NativeReverseTrack_ReflectDriverSpawns(struct Level *level)
 {
-	struct CheckpointNode *nodes = level->ptr_restart_points;
+	struct CheckpointNode *nodes = Level_Getptr_restart_points(level);
 	u8 previousIndex = nodes[0].nextIndex_backward;
 	if ((previousIndex == 0xff) || (previousIndex >= level->cnt_restart_points))
 	{
@@ -332,12 +332,12 @@ void NativeReverseTrack_ApplyToLevel(struct Level *level)
 	if (!gNativeReverseTrackEnabled || !NativeReverseTrack_IsAllowedMode() || (level == NULL) ||
 	    (sdata == NULL) || (sdata->gGT == NULL) ||
 	    (sdata->gGT->levelID != s_nativeReverseTrackPhysicalId) ||
-	    (level->ptr_restart_points == NULL) || (level->cnt_restart_points <= 0))
+	    (Level_Getptr_restart_points(level) == NULL) || (level->cnt_restart_points <= 0))
 	{
 		return;
 	}
 
-	struct CheckpointNode *nodes = level->ptr_restart_points;
+	struct CheckpointNode *nodes = Level_Getptr_restart_points(level);
 	u16 trackLength = nodes[0].distToFinish;
 	if (trackLength == 0)
 	{

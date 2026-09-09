@@ -415,12 +415,50 @@ struct Model
 	s16 numHeaders;
 
 	// 0x14
-	struct ModelHeader *headers;
+	// NOTE(aalhendi): Retail stores this as a 32-bit RAM address slot
+	// (real pointer on 32-bit PC/Vita). On 64-bit Switch, a real
+	// `struct ModelHeader *` here would need 8-byte alignment, which the
+	// compiler would satisfy by inserting 4 bytes of padding before this
+	// field - shifting it from file-format offset 0x14 to 0x18 and making
+	// every direct byte-offset read/patch of this field (LOAD_RunPtrMap
+	// fixups baked into the file by the original toolchain, which patch
+	// raw bytes at fixed offsets with no knowledge of this C struct) land
+	// on the wrong bytes. Keeping this as `u32` preserves the exact retail
+	// byte offset (u32 only needs 4-byte alignment, so no padding is
+	// inserted) and matches the file's real on-disk representation. Use
+	// Model_GetHeaders()/Model_SetHeaders() (game/LibraryOfModels.c) to
+	// convert to/from a real pointer - never dereference this field
+	// directly.
+	u32 headers_slot;
 };
 
 CTR_STATIC_ASSERT(sizeof(((struct Model *)0)->name) == MODEL_NAME_WORD_COUNT * sizeof(u32));
 CTR_STATIC_ASSERT(OFFSETOF(struct Model, id) == 0x10);
-CTR_STATIC_ASSERT(OFFSETOF(struct Model, headers) == 0x14);
+CTR_STATIC_ASSERT(OFFSETOF(struct Model, headers_slot) == 0x14);
+
+#if defined(__SWITCH__)
+#include <platform/native_memory.h>
+
+force_inline struct ModelHeader *Model_GetHeaders(const struct Model *m)
+{
+	return (struct ModelHeader *)NativeMempack_ReconstructPointer(m->headers_slot);
+}
+
+force_inline void Model_SetHeaders(struct Model *m, struct ModelHeader *headers)
+{
+	m->headers_slot = NativeMempack_TruncatePointer(headers);
+}
+#else
+force_inline struct ModelHeader *Model_GetHeaders(const struct Model *m)
+{
+	return (struct ModelHeader *)(uintptr_t)m->headers_slot;
+}
+
+force_inline void Model_SetHeaders(struct Model *m, struct ModelHeader *headers)
+{
+	m->headers_slot = (u32)(uintptr_t)headers;
+}
+#endif
 
 struct InstDef
 {

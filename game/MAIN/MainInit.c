@@ -33,7 +33,7 @@ static void MainInit_InitVisMemBspListNodes(struct VisMem *visMem, struct mesh_i
 // NOTE(aalhendi): ASM-verified NTSC-U 926 0x8003af84-0x8003b008 for the retail path.
 void MainInit_VisMem(struct GameTracker *gGT)
 {
-	struct VisMem *visMem = gGT->level1->visMem;
+	struct VisMem *visMem = Level_GetvisMem(gGT->level1);
 	gGT->visMem1 = visMem;
 
 	if (visMem == NULL)
@@ -50,7 +50,7 @@ void MainInit_VisMem(struct GameTracker *gGT)
 	}
 
 #ifdef CTR_NATIVE
-	MainInit_InitVisMemBspListNodes(visMem, gGT->level1->ptr_mesh_info);
+	MainInit_InitVisMemBspListNodes(visMem, Level_Getptr_mesh_info(gGT->level1));
 #endif
 }
 
@@ -593,11 +593,11 @@ void MainInit_FinalizeInit(struct GameTracker *gGT)
 
 #if defined(CTR_NATIVE)
 	// NOTE(aalhendi): Native menu LEVs may publish no restart table.
-	if (lev1->ptr_restart_points != NULL)
+	if (Level_Getptr_restart_points(lev1) != NULL)
 #endif
 	// 0x1d7c
 	{
-		gGT->trackLength_x_numLaps_x_8 = lev1->ptr_restart_points[0].distToFinish * gGT->numLaps * 8;
+		gGT->trackLength_x_numLaps_x_8 = Level_Getptr_restart_points(lev1)[0].distToFinish * gGT->numLaps * 8;
 	}
 
 	MainInit_Drivers(gGT);
@@ -674,7 +674,7 @@ void MainInit_FinalizeInit(struct GameTracker *gGT)
 	}
 
 	// copy InstDef to InstancePool
-	INSTANCE_LevInitAll(lev1->ptrInstDefs, lev1->numInstances);
+	INSTANCE_LevInitAll(Level_GetptrInstDefs(lev1), lev1->numInstances);
 
 	// Debug_ToggleNormalSpawn == normal spawn
 	if (gGT->Debug_ToggleNormalSpawn != 0)
@@ -725,9 +725,9 @@ void MainInit_FinalizeInit(struct GameTracker *gGT)
 
 	if (lev1 != NULL)
 	{
-		if (lev1->ptr_mesh_info != NULL)
+		if (Level_Getptr_mesh_info(lev1) != NULL)
 		{
-			LevInstDef_UnPack(lev1->ptr_mesh_info);
+			LevInstDef_UnPack(Level_Getptr_mesh_info(lev1));
 		}
 	}
 
@@ -736,7 +736,7 @@ void MainInit_FinalizeInit(struct GameTracker *gGT)
 	MainInit_RainBuffer(gGT);
 
 	// animates water, 1P mode
-	AnimateWater1P(gGT->timer, lev1->numWaterVertices, lev1->ptr_water, lev1->ptr_tex_waterEnvMap, lev1->visOVertSrc);
+	AnimateWater1P(gGT->timer, lev1->numWaterVertices, Level_Getptr_water(lev1), Level_Getptr_tex_waterEnvMap(lev1), Level_GetvisOVertSrc(lev1));
 
 	gGT->pushBuffer_UI.fadeFromBlack_desiredResult = 0x1000;
 	gGT->pushBuffer_UI.fade_step = 0x200;

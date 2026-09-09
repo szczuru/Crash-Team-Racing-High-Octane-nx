@@ -452,10 +452,10 @@ void RB_FlameJet_LInB(struct Instance *inst)
 	fjBoxDesc.bbox.max.y = 0x80;
 	fjBoxDesc.bbox.max.z = 0x140;
 
-	if (sdata->gGT->level1->ptrSpawnType1->count > 0)
+	if (Level_GetptrSpawnType1(sdata->gGT->level1)->count > 0)
 	{
 		// put on separate cycles
-		void **pointers = ST1_GETPOINTERS(sdata->gGT->level1->ptrSpawnType1);
+		void **pointers = ST1_GETPOINTERS(Level_GetptrSpawnType1(sdata->gGT->level1));
 		metaArray = (s16 *)pointers[ST1_SPAWN];
 
 		fjID = inst->name[strlen(inst->name) - 1] - '0';

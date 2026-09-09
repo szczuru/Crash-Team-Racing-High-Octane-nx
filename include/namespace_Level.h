@@ -716,19 +716,33 @@ struct LevTexLookup
 	struct IconGroup **firstIconGroupPtr;
 };
 
+// NOTE(aalhendi): Every pointer-typed field below is stored as a plain `u32`
+// ("_slot" suffix) instead of a real pointer. Retail stores this whole
+// struct as a byte-for-byte file format (LOAD_RunPtrMap patches specific
+// 4-byte offsets in the raw file bytes with no knowledge of any C struct),
+// so each pointer slot must stay exactly 4 bytes, at exactly its retail
+// offset. A real pointer field would need 8-byte alignment on 64-bit
+// Switch, which inserts padding and shifts every subsequent field off its
+// file-format offset - corrupting every read after the first pointer field.
+// `u32` only needs 4-byte alignment, so no padding is inserted and every
+// offset below matches retail exactly (verified against the existing
+// CTR_STATIC_ASSERT offset checks at the bottom of this file).
+// Use the Level_Get*/Level_Set* inline accessors (below the struct) to
+// convert to/from a real pointer - never dereference a "_slot" field
+// directly.
 struct Level
 {
 	// 0x0
 	// pointer to mesh info
-	struct mesh_info *ptr_mesh_info;
+	u32 ptr_mesh_info_slot;
 
 	// 0x4
 	// pointer to skybox (struct not yet known)
-	struct Skybox *ptr_skybox;
+	u32 ptr_skybox_slot;
 
 	// 0x8
 	// pointer to array of animated texture structs
-	struct AnimTex *ptr_anim_tex;
+	u32 ptr_anim_tex_slot;
 
 	// 0xc
 	// number of model instances in the level
@@ -738,7 +752,7 @@ struct Level
 	// 0x10
 	// points to the 1st entry of the array of InstDefs
 	// (whatever they are)
-	struct InstDef *ptrInstDefs;
+	u32 ptrInstDefs_slot;
 
 	// 0x14
 	// number of actual models
@@ -746,32 +760,32 @@ struct Level
 
 	// 0x18
 	// pointer to the array of pointers to models
-	struct Model **ptrModelsPtrArray;
+	u32 ptrModelsPtrArray_slot;
 
 	// 0x1c
 	// unknown, extra bsp region
-	void *unk3;
+	u32 unk3_slot;
 
 	// 0x20
 	// unknown, extra bsp region
-	void *unk4;
+	u32 unk4_slot;
 
 	// 0x24
 	// pointer to the array of pointers to model instances (?)
 	// converts back and forth, Instance to InstDef
-	struct InstDef **ptrInstDefPtrArray;
+	u32 ptrInstDefPtrArray_slot;
 
 	// 0x28
 	// default packed OVert visibility bitset
-	int *visOVertSrc;
+	u32 visOVertSrc_slot;
 
 	// 0x2c
 	// assumed to be reserved
-	void *null1;
+	u32 null1_slot;
 
 	// 0x30
 	// assumed to be reserved
-	void *null2;
+	u32 null2_slot;
 
 	// 0x34
 	// number of vertices treated as water
@@ -779,19 +793,19 @@ struct Level
 
 	// 0x38
 	// pointer to array of water entries
-	struct WaterVert *ptr_water;
+	u32 ptr_water_slot;
 
 	// 0x3c
 	// leads to the icon pack header
-	struct LevTexLookup *levTexLookup;
+	u32 levTexLookup_slot;
 
 	// 0x40
 	// leads to the icon pack data
-	struct Icon *ptr_named_tex_array;
+	u32 ptr_named_tex_array_slot;
 
 	// 0x44
 	// pointer to environment map texture layout, used by water rendering
-	struct TextureLayout *ptr_tex_waterEnvMap;
+	u32 ptr_tex_waterEnvMap_slot;
 
 	// 0x48
 	// used for additional skybox gradients (e.g. papu's pyramid)
@@ -813,12 +827,12 @@ struct Level
 
 	// 0xCC -- next
 	// unknown, extra bsp regions
-	void *unk_Lev_CC;
-	void *unk_Lev_D0;
+	u32 unk_Lev_CC_slot;
+	u32 unk_Lev_D0_slot;
 
 	// 0xD4
 	// assumed to be a pointer to low textures array, there is no number of entries though
-	void *ptrLowTexArray;
+	u32 ptrLowTexArray_slot;
 
 	// 0xD8
 	// Used in Coco Park, encoded as Blue
@@ -833,15 +847,15 @@ struct Level
 
 	// 0xE0
 	// pointer to string, date, assumed bsp compilation start
-	char *build_start;
+	u32 build_start_slot;
 
 	// 0xE4
 	// pointer to string, date, assumed bsp compilation end
-	char *build_end;
+	u32 build_end_slot;
 
 	// 0xE8
 	// pointer to string, assumed build type
-	char *build_type;
+	u32 build_type_slot;
 
 	// 0xEC
 	char unk_EC[0x18];
@@ -851,7 +865,7 @@ struct Level
 	struct RainBuffer rainBuffer;
 
 	// 0x134
-	struct SpawnType1 *ptrSpawnType1;
+	u32 ptrSpawnType1_slot;
 
 	// spawn_arrays2 is for things
 	// like Seal, Minecart, etc,
@@ -861,7 +875,7 @@ struct Level
 	int numSpawnType2;
 
 	// 0x13C
-	struct SpawnType2 *ptrSpawnType2;
+	u32 ptrSpawnType2_slot;
 
 	// spawn_arrays is for things
 	// N Gin Labs barrel, Snowball,
@@ -871,7 +885,7 @@ struct Level
 	int numSpawnType2_PosRot;
 
 	// 0x144
-	struct SpawnType2 *ptrSpawnType2_PosRot;
+	u32 ptrSpawnType2_PosRot_slot;
 
 	// restart_points is for respawning
 	// driver on track after falling off
@@ -880,7 +894,7 @@ struct Level
 	int cnt_restart_points;
 
 	// 0x14C
-	struct CheckpointNode *ptr_restart_points;
+	u32 ptr_restart_points_slot;
 
 	// 0x150
 	char unk_150[0x10];
@@ -902,13 +916,13 @@ struct Level
 
 	// 0x170
 	// default packed SCVert visibility bitset
-	int *visSCVertSrc;
+	u32 visSCVertSrc_slot;
 
 	// 0x174
 	int numSCVert;
 
 	// 0x178
-	struct SCVert *ptrSCVert;
+	u32 ptrSCVert_slot;
 
 	// 0x17c - 0x182
 	struct Stars stars;
@@ -921,7 +935,7 @@ struct Level
 	s16 splitLines[2];
 
 	// 0x188
-	struct NavHeader **LevNavTable;
+	u32 LevNavTable_slot;
 
 	// 0x18C
 	union
@@ -937,10 +951,65 @@ struct Level
 	};
 
 	// 0x190
-	struct VisMem *visMem;
+	u32 visMem_slot;
 
 	char footer[0x60];
 };
+
+#if defined(__SWITCH__)
+#include <platform/native_memory.h>
+#define LEVEL_PTR_ACCESSOR(fieldName, ptrType)                                                                                                     \
+	force_inline ptrType Level_Get##fieldName(const struct Level *lev)                                                                             \
+	{                                                                                                                                                \
+		return (ptrType)NativeMempack_ReconstructPointer(lev->fieldName##_slot);                                                                   \
+	}                                                                                                                                                \
+	force_inline void Level_Set##fieldName(struct Level *lev, ptrType value)                                                                        \
+	{                                                                                                                                                \
+		lev->fieldName##_slot = NativeMempack_TruncatePointer(value);                                                                               \
+	}
+#else
+#define LEVEL_PTR_ACCESSOR(fieldName, ptrType)                                                                                                     \
+	force_inline ptrType Level_Get##fieldName(const struct Level *lev)                                                                             \
+	{                                                                                                                                                \
+		return (ptrType)(uintptr_t)lev->fieldName##_slot;                                                                                          \
+	}                                                                                                                                                \
+	force_inline void Level_Set##fieldName(struct Level *lev, ptrType value)                                                                        \
+	{                                                                                                                                                \
+		lev->fieldName##_slot = (u32)(uintptr_t)value;                                                                                              \
+	}
+#endif
+
+LEVEL_PTR_ACCESSOR(ptr_mesh_info, struct mesh_info *)
+LEVEL_PTR_ACCESSOR(ptr_skybox, struct Skybox *)
+LEVEL_PTR_ACCESSOR(ptr_anim_tex, struct AnimTex *)
+LEVEL_PTR_ACCESSOR(ptrInstDefs, struct InstDef *)
+LEVEL_PTR_ACCESSOR(ptrModelsPtrArray, struct Model **)
+LEVEL_PTR_ACCESSOR(unk3, void *)
+LEVEL_PTR_ACCESSOR(unk4, void *)
+LEVEL_PTR_ACCESSOR(ptrInstDefPtrArray, struct InstDef **)
+LEVEL_PTR_ACCESSOR(visOVertSrc, int *)
+LEVEL_PTR_ACCESSOR(null1, void *)
+LEVEL_PTR_ACCESSOR(null2, void *)
+LEVEL_PTR_ACCESSOR(ptr_water, struct WaterVert *)
+LEVEL_PTR_ACCESSOR(levTexLookup, struct LevTexLookup *)
+LEVEL_PTR_ACCESSOR(ptr_named_tex_array, struct Icon *)
+LEVEL_PTR_ACCESSOR(ptr_tex_waterEnvMap, struct TextureLayout *)
+LEVEL_PTR_ACCESSOR(unk_Lev_CC, void *)
+LEVEL_PTR_ACCESSOR(unk_Lev_D0, void *)
+LEVEL_PTR_ACCESSOR(ptrLowTexArray, void *)
+LEVEL_PTR_ACCESSOR(build_start, char *)
+LEVEL_PTR_ACCESSOR(build_end, char *)
+LEVEL_PTR_ACCESSOR(build_type, char *)
+LEVEL_PTR_ACCESSOR(ptrSpawnType1, struct SpawnType1 *)
+LEVEL_PTR_ACCESSOR(ptrSpawnType2, struct SpawnType2 *)
+LEVEL_PTR_ACCESSOR(ptrSpawnType2_PosRot, struct SpawnType2 *)
+LEVEL_PTR_ACCESSOR(ptr_restart_points, struct CheckpointNode *)
+LEVEL_PTR_ACCESSOR(visSCVertSrc, int *)
+LEVEL_PTR_ACCESSOR(ptrSCVert, struct SCVert *)
+LEVEL_PTR_ACCESSOR(LevNavTable, struct NavHeader **)
+LEVEL_PTR_ACCESSOR(visMem, struct VisMem *)
+
+#undef LEVEL_PTR_ACCESSOR
 
 CTR_STATIC_ASSERT(sizeof(struct RainBuffer) == 0x30);
 CTR_STATIC_ASSERT(sizeof(struct SpawnPosRot) == 0xc);

@@ -1304,7 +1304,7 @@ static struct ModelHeader *RenderBucket_SelectModelHeader(struct Instance *inst,
 
 	// NOTE(aalhendi): Retail keeps the low 32 bits of this product before dividing by GTE H.
 	projectedDistance = (int)(u32)((s64)(pb->rect.w >> 1) * viewDepth) / pb->distanceToScreen_PREV;
-	mh = inst->model->headers;
+	mh = Model_GetHeaders(inst->model);
 	headersRemaining = inst->model->numHeaders;
 	lodIndex = 0;
 
@@ -1313,10 +1313,10 @@ static struct ModelHeader *RenderBucket_SelectModelHeader(struct Instance *inst,
 		if (RenderBucket_MipsSub(projectedDistance, 0x1000) < 0)
 		{
 			*lodIndexOut = 0;
-			return &inst->model->headers[0];
+			return &Model_GetHeaders(inst->model)[0];
 		}
 
-		mh = &inst->model->headers[3];
+		mh = &Model_GetHeaders(inst->model)[3];
 		if (RenderBucket_MipsSub(projectedDistance, (u16)mh->maxDistanceLOD) < 0)
 		{
 			*lodIndexOut = 3;
@@ -2120,7 +2120,7 @@ static struct RenderBucketEntry *RenderBucket_QueueDraw(struct Instance *inst, s
 		return rbi;
 	}
 
-	if (inst->model->headers == 0)
+	if (Model_GetHeaders(inst->model) == 0)
 	{
 		return rbi;
 	}

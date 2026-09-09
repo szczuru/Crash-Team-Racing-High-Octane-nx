@@ -47,7 +47,7 @@ void LOAD_Hub_SwapNow()
 	// ptrintf("gGT->level2 = 0x%08x\n",gGT->level2);
 	// ptrintf("SWAPPING 1...\n");
 
-	LevInstDef_RePack(gGT->level1->ptr_mesh_info, 1);
+	LevInstDef_RePack(Level_Getptr_mesh_info(gGT->level1), 1);
 
 	// Aug 5
 	// ptrintf("SWAPPING 2...\n");
@@ -92,13 +92,13 @@ void LOAD_Hub_SwapNow()
 
 	if (level1 != 0)
 	{
-		LibraryOfModels_Store(gGT, level1->numModels, level1->ptrModelsPtrArray);
+		LibraryOfModels_Store(gGT, level1->numModels, Level_GetptrModelsPtrArray(level1));
 
-		INSTANCE_LevInitAll(level1->ptrInstDefs, level1->numInstances);
+		INSTANCE_LevInitAll(Level_GetptrInstDefs(level1), level1->numInstances);
 
-		LevInstDef_UnPack(level1->ptr_mesh_info);
+		LevInstDef_UnPack(Level_Getptr_mesh_info(level1));
 
-		DecalGlobal_Store(gGT, level1->levTexLookup);
+		DecalGlobal_Store(gGT, Level_GetlevTexLookup(level1));
 	}
 
 	MEMPACK_SwapPacks(gGT->activeMempackIndex);

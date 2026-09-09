@@ -1203,7 +1203,7 @@ internal void COLL_FIXED_PlayerSearch_SetupSearch(struct ScratchpadStruct *sps, 
 	sps->Union.QuadBlockColl.pos = probeTop;
 	sps->Input1.pos = probeBottom;
 
-	sps->ptr_mesh_info = gGT->level1->ptr_mesh_info;
+	sps->ptr_mesh_info = Level_Getptr_mesh_info(gGT->level1);
 	sps->Union.QuadBlockColl.quadFlagsIgnored = QUADBLOCK_FLAG_NO_COLLISION_RESPONSE;
 	sps->Union.QuadBlockColl.quadFlagsWanted = QUADBLOCK_FLAG_GROUND | QUADBLOCK_FLAG_COLLISION_SURFACE;
 
@@ -1326,15 +1326,16 @@ internal b32 COLL_FIXED_PlayerSearch_CheckMaskGrabProgress(struct Driver *d, str
 		return 0;
 	}
 
-	struct CheckpointNode *node = &level->ptr_restart_points[quad->checkpointIndex];
+	struct CheckpointNode *node = &Level_Getptr_restart_points(level)[quad->checkpointIndex];
 
 	if (((d->actionsFlagSet & ACTION_BEHIND_START_LINE) == 0) && (node->nextIndex_forward > 1) &&
-	    ((((level->ptr_restart_points[0].distToFinish >> 2) << 3) < (s32)(d->distanceToFinish_checkpoint - CTR_MipsMulLo(node->distToFinish, 8)))))
+	    ((((Level_Getptr_restart_points(level)[0].distToFinish >> 2) << 3) <
+	      (s32)(d->distanceToFinish_checkpoint - CTR_MipsMulLo(node->distToFinish, 8)))))
 	{
 		return 1;
 	}
 
-	u16 trackLength = level->ptr_restart_points[0].distToFinish;
+	u16 trackLength = Level_Getptr_restart_points(level)[0].distToFinish;
 
 #if defined(CTR_NATIVE)
 	// NOTE(aalhendi): Retail reaches directly through lastValid here. Native
@@ -1348,7 +1349,7 @@ internal b32 COLL_FIXED_PlayerSearch_CheckMaskGrabProgress(struct Driver *d, str
 #endif
 
 	if ((node->distToFinish < (CTR_MipsMulLo(trackLength, 0xf) >> 4)) && (d->lastValid->checkpointIndex != 0xff) &&
-	    ((level->ptr_restart_points[d->lastValid->checkpointIndex].distToFinish + (trackLength >> 2)) < node->distToFinish))
+	    ((Level_Getptr_restart_points(level)[d->lastValid->checkpointIndex].distToFinish + (trackLength >> 2)) < node->distToFinish))
 	{
 		return 1;
 	}
@@ -1454,7 +1455,7 @@ void COLL_FIXED_PlayerSearch(struct Thread *t, struct Driver *d)
 		d->terrainMeta2 = VehAfterColl_GetTerrain(TERRAIN_NONE);
 	}
 
-	if (d->posCurr.y < CTR_MipsSll(CTR_MipsSubLo(level->ptr_mesh_info->bspRoot->box.min.y, 0x40), 8))
+	if (d->posCurr.y < CTR_MipsSll(CTR_MipsSubLo(Level_Getptr_mesh_info(level)->bspRoot->box.min.y, 0x40), 8))
 	{
 		d->collisionFlags |= DRIVER_COLL_FLAG_MASK_GRAB_REQUEST;
 	}
@@ -2288,7 +2289,7 @@ void COLL_MOVED_PlayerSearch(struct Thread *t, struct Driver *d)
 	sps->Union.QuadBlockColl.quadFlagsWanted = QUADBLOCK_FLAG_GROUND | QUADBLOCK_FLAG_COLLISION_SURFACE;
 	sps->Union.QuadBlockColl.quadFlagsIgnored = 0;
 	sps->Union.QuadBlockColl.searchFlags = COLL_SEARCH_TEST_INSTANCES;
-	sps->ptr_mesh_info = gGT->level1->ptr_mesh_info;
+	sps->ptr_mesh_info = Level_Getptr_mesh_info(gGT->level1);
 
 	if (gGT->numPlyrCurrGame < 3)
 	{
@@ -2345,9 +2346,9 @@ void COLL_MOVED_PlayerSearch(struct Thread *t, struct Driver *d)
 
 		sps->Union.QuadBlockColl.searchFlags = (sps->Union.QuadBlockColl.searchFlags | COLL_SEARCH_TEST_INSTANCES) & ~COLL_SEARCH_REUSE_NORMALS;
 
-		if ((gGT->level1 != NULL) && (gGT->level1->ptr_mesh_info != NULL) && (gGT->level1->ptr_mesh_info->bspRoot != NULL))
+		if ((gGT->level1 != NULL) && (Level_Getptr_mesh_info(gGT->level1) != NULL) && (Level_Getptr_mesh_info(gGT->level1)->bspRoot != NULL))
 		{
-			COLL_SearchBSP_CallbackPARAM(gGT->level1->ptr_mesh_info->bspRoot, &sps->bbox, COLL_MOVED_BSPLEAF_TestQuadblocks, sps);
+			COLL_SearchBSP_CallbackPARAM(Level_Getptr_mesh_info(gGT->level1)->bspRoot, &sps->bbox, COLL_MOVED_BSPLEAF_TestQuadblocks, sps);
 		}
 
 		if (sps->boolDidTouchQuadblock != 0)

@@ -463,7 +463,7 @@ void RB_Plant_LInB(struct Instance *inst)
 	plantBoxDesc.bbox.max.y = 0x80;
 	plantBoxDesc.bbox.max.z = 0x1e0;
 
-	ptrSpawnType1 = sdata->gGT->level1->ptrSpawnType1;
+	ptrSpawnType1 = Level_GetptrSpawnType1(sdata->gGT->level1);
 	if (ptrSpawnType1->count > 0)
 	{
 		// puts plants on separate cycles

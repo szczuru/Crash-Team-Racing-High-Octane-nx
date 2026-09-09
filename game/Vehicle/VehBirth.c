@@ -86,7 +86,7 @@ static int VehBirth_IsDoor5InstDef(struct InstDef *instDef)
 
 static struct InstDef *VehBirth_FindDoor5(struct Level *level)
 {
-	struct InstDef *instDef = level->ptrInstDefs;
+	struct InstDef *instDef = Level_GetptrInstDefs(level);
 
 	for (int i = 0; i < (int)level->numInstances; i++, instDef++)
 	{
@@ -134,7 +134,7 @@ static int VehBirth_ShouldUseStartlineInAdv(struct GameTracker *gGT, s16 *warppa
 
 static struct SpawnPosRot *VehBirth_SpawnType2PosRot(struct Level *level)
 {
-	return level->ptrSpawnType2_PosRot[1].posRot;
+	return Level_GetptrSpawnType2_PosRot(level)[1].posRot;
 }
 
 static void VehBirth_SetBottomFromPos(SVec3 *posBottom, const SVec3 *pos)
@@ -155,7 +155,7 @@ static void VehBirth_SetStartlinePosition(struct Driver *d, struct Level *level,
 
 	d->actionsFlagSet |= ACTION_BEHIND_START_LINE;
 #ifdef CTR_NATIVE
-	if (level->ptr_restart_points == NULL)
+	if (Level_Getptr_restart_points(level) == NULL)
 	{
 		// NOTE(aalhendi): Retail does an unguarded low-address read here;
 		// native cannot dereference PS1 null-space for menu/hub-style LEVs.
@@ -164,7 +164,7 @@ static void VehBirth_SetStartlinePosition(struct Driver *d, struct Level *level,
 	else
 	{
 #endif
-		d->distanceToFinish_checkpoint = level->ptr_restart_points[0].distToFinish << 3;
+		d->distanceToFinish_checkpoint = Level_Getptr_restart_points(level)[0].distToFinish << 3;
 	}
 	VehBirth_SetBottomFromPos(posBottom, &level->DriverSpawn[spawnIndex].pos);
 }
@@ -201,7 +201,7 @@ void VehBirth_TeleportSelf(struct Driver *d, u8 spawnFlag, int spawnPosY)
 	int spawnAtBoss;
 	int spawnOutsideBoss = 0;
 
-	if ((level1 == NULL) || (level1->ptr_mesh_info == NULL))
+	if ((level1 == NULL) || (Level_Getptr_mesh_info(level1) == NULL))
 	{
 		return;
 	}
@@ -215,7 +215,7 @@ void VehBirth_TeleportSelf(struct Driver *d, u8 spawnFlag, int spawnPosY)
 	{
 		sps->Union.QuadBlockColl.searchFlags = COLL_SEARCH_HIGH_LOD;
 	}
-	sps->ptr_mesh_info = level1->ptr_mesh_info;
+	sps->ptr_mesh_info = Level_Getptr_mesh_info(level1);
 
 	gGT->gameMode2 &= ~VEH_FREEZE_DOOR;
 	spawnAtBoss = gGT->gameMode2 & SPAWN_AT_BOSS;

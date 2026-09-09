@@ -35,7 +35,7 @@ void RB_Bubbles_RoosTubes()
 	}
 
 	// Roo's Tubes bubble spawn path
-	spawnType2 = &level1->ptrSpawnType2[1];
+	spawnType2 = &Level_GetptrSpawnType2(level1)[1];
 	d = gGT->drivers[0];
 
 	int timer = gGT->timer;

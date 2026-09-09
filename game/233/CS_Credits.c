@@ -118,13 +118,13 @@ void CS_Credits_AnimateCreditGhost(struct Instance *dst, struct Instance *src, i
 	dstModelInts[4] = srcModelInts[4];
 	dstModelInts[5] = srcModelInts[5];
 
-	localModel->headers = co->creditGhostHeaders[index];
+	Model_SetHeaders(localModel, co->creditGhostHeaders[index]);
 
 	s16 srcNumHeaders = srcModel->numHeaders;
 	if (srcNumHeaders > 0)
 	{
-		struct ModelHeader *dstHeaders = localModel->headers;
-		struct ModelHeader *srcHeaders = srcModel->headers;
+		struct ModelHeader *dstHeaders = Model_GetHeaders(localModel);
+		struct ModelHeader *srcHeaders = Model_GetHeaders(srcModel);
 
 		for (int i = 0; i < srcNumHeaders; i++)
 		{
@@ -182,7 +182,7 @@ void CS_Credits_Init(void)
 	advProg = &sdata->advProgress;
 	creditsObj = &creditsBSS.creditsObj;
 
-	void **pointers = ST1_GETPOINTERS(gGT->level1->ptrSpawnType1);
+	void **pointers = ST1_GETPOINTERS(Level_GetptrSpawnType1(gGT->level1));
 	CLH = pointers[ST1_CREDITS];
 
 	creditsBSS.dancerThread = 0;

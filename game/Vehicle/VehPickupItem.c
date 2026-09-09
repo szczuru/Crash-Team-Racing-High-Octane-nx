@@ -863,7 +863,7 @@ void VehPickupItem_ShootNow(struct Driver *d, s32 weaponID, s32 flags)
 			sps->Union.QuadBlockColl.searchFlags = COLL_SEARCH_TEST_INSTANCES | COLL_SEARCH_HIGH_LOD;
 		}
 
-		sps->ptr_mesh_info = gGT->level1->ptr_mesh_info;
+		sps->ptr_mesh_info = Level_Getptr_mesh_info(gGT->level1);
 
 		COLL_SearchBSP_CallbackQUADBLK(&probeTop, &probeBottom, sps, MINE_COLL_CALLBACK_FLAGS);
 
@@ -950,7 +950,7 @@ void VehPickupItem_ShootNow(struct Driver *d, s32 weaponID, s32 flags)
 		VehPickupItem_CopyMatrix(&weaponInst->matrix, &dInst->matrix);
 
 		// potion always faces camera
-		weaponInst->model->headers[0].flags |= BEAKER_MODEL_HEADER_CAMERA_FLAG;
+		Model_GetHeaders(weaponInst->model)[0].flags |= BEAKER_MODEL_HEADER_CAMERA_FLAG;
 
 		weaponTh = weaponInst->thread;
 		weaponTh->funcThDestroy = PROC_DestroyInstance;
@@ -1177,7 +1177,7 @@ void VehPickupItem_ShootNow(struct Driver *d, s32 weaponID, s32 flags)
 		// sets nodeCurrIndex
 		RB_Warpball_SeekDriver(tw, d->checkpoint.currentIndex, d);
 
-		struct CheckpointNode *cn = gGT->level1->ptr_restart_points;
+		struct CheckpointNode *cn = Level_Getptr_restart_points(gGT->level1);
 		tw->nodeNextIndex = tw->nodeCurrIndex;
 		tw->ptrNodeCurr = &cn[tw->nodeCurrIndex];
 

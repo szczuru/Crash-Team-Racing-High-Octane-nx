@@ -713,11 +713,11 @@ void AH_Door_LInB(struct Instance *inst)
 	otherDoorInst->matrix.t[2] += (ratio * AH_DOOR_PAIR_OFFSET >> 0xc);
 
 	// both doors always face camera
-	headers = inst->model->headers;
+	headers = Model_GetHeaders(inst->model);
 
 	headers->flags |= 2;
 
-	headers = otherDoorInst->model->headers;
+	headers = Model_GetHeaders(otherDoorInst->model);
 
 	headers->flags |= 2;
 

@@ -435,7 +435,7 @@ s32 CAM_Path_GetNumPoints(void)
 		return 0;
 	}
 
-	ptrSpawnType1 = level1->ptrSpawnType1;
+	ptrSpawnType1 = Level_GetptrSpawnType1(level1);
 	if (ptrSpawnType1->count < 3)
 	{
 		return 0;
@@ -476,7 +476,7 @@ u8 CAM_Path_Move(s32 frameIndex, s16 *position, s16 *rotation, s16 *pathFlagsOut
 		return 0;
 	}
 
-	void **ptrs = ST1_GETPOINTERS(sdata->gGT->level1->ptrSpawnType1);
+	void **ptrs = ST1_GETPOINTERS(Level_GetptrSpawnType1(sdata->gGT->level1));
 	s16 *ptrCam = ptrs[ST1_CAMERA_PATH];
 
 	u16 pathNumNode = (u16)ptrCam[0];
@@ -523,7 +523,7 @@ void CAM_StartOfRace(struct CameraDC *cDC)
 		// NOTE: (s32)ptr truncates real pointers on 64-bit (Switch/AArch64);
 		// keep flyInData as a byte pointer instead (identical addresses on
 		// 32-bit hosts).
-		u8 *flyInData = (u8 *)level1->ptr_restart_points;
+		u8 *flyInData = (u8 *)Level_Getptr_restart_points(level1);
 		cDC->trackPathProgress = 0;
 		cDC->transitionBlend = 0;
 
@@ -584,7 +584,7 @@ void CAM_EndOfRace(struct CameraDC *cDC, struct Driver *d)
 #if BUILD > SepReview
 
 	// If not in Battle Mode and track path points exist and game is on 1P or 2P mode
-	if (((gGT->gameMode1 & BATTLE_MODE) == 0) && (1 < gGT->level1->ptrSpawnType1->count) && (gGT->numPlyrCurrGame < 3))
+	if (((gGT->gameMode1 & BATTLE_MODE) == 0) && (1 < Level_GetptrSpawnType1(gGT->level1)->count) && (gGT->numPlyrCurrGame < 3))
 	{
 		// Activate end-of-race cDC flag in CameraDC struct
 		cDC->flags |= CAMERA_FLAG_ARCADE_END_OF_RACE_REQUESTED;
@@ -684,13 +684,13 @@ void CAM_FindClosestQuadblock(struct ScratchpadStruct *sps, struct CameraDC *cDC
 
 	gGT = sdata->gGT;
 
-	if ((gGT->level1 == NULL) || (gGT->level1->ptr_mesh_info == NULL) || (gGT->level1->ptr_mesh_info->bspRoot == NULL))
+	if ((gGT->level1 == NULL) || (Level_Getptr_mesh_info(gGT->level1) == NULL) || (Level_Getptr_mesh_info(gGT->level1)->bspRoot == NULL))
 	{
 		sps->ptr_mesh_info = NULL;
 		return;
 	}
 
-	meshInfo = gGT->level1->ptr_mesh_info;
+	meshInfo = Level_Getptr_mesh_info(gGT->level1);
 	sps->ptr_mesh_info = meshInfo;
 
 	if (cDC->ptrQuadBlock != NULL)
@@ -726,7 +726,7 @@ void CAM_StartLine_FlyIn_FixY(SVec3 *posRot)
 	sps->Union.QuadBlockColl.quadFlagsWanted = QUADBLOCK_FLAG_GROUND | QUADBLOCK_FLAG_COLLISION_SURFACE;
 	sps->Union.QuadBlockColl.quadFlagsIgnored = 0;
 	sps->Union.QuadBlockColl.searchFlags = COLL_SEARCH_HIGH_LOD;
-	sps->ptr_mesh_info = sdata->gGT->level1->ptr_mesh_info;
+	sps->ptr_mesh_info = Level_Getptr_mesh_info(sdata->gGT->level1);
 
 	pos.x = posRot->x;
 	pos.y = posRot->y;
@@ -957,7 +957,7 @@ static b32 CAM_RetailFrameTick(void)
 
 static struct CheckpointNode *CAM_FollowDriver_TrackPath_GetNode(struct CameraDC *cDC, struct CheckpointNode *node, s32 speed)
 {
-	struct CheckpointNode *nodes = sdata->gGT->level1->ptr_restart_points;
+	struct CheckpointNode *nodes = Level_Getptr_restart_points(sdata->gGT->level1);
 	u8 nodeIndex;
 
 	if (speed > 0)
@@ -1679,7 +1679,7 @@ LAB_8001ab04:
 		// if startline camera
 		else
 		{
-			struct SpawnType1 *st1 = gGT->level1->ptrSpawnType1;
+			struct SpawnType1 *st1 = Level_GetptrSpawnType1(gGT->level1);
 			void **pointers = ST1_GETPOINTERS(st1);
 			u8 *cameraPath = pointers[ST1_CAMERA_PATH];
 			s32 flyInDone = 0;
@@ -1946,7 +1946,7 @@ void CAM_ThTick(struct Thread *t)
 		goto SkipNewCameraEOR;
 	}
 
-	psVar14 = gGT->level1->ptrSpawnType1;
+	psVar14 = Level_GetptrSpawnType1(gGT->level1);
 
 	psVar21 = 0;
 	if (psVar14->count < 3)
@@ -1988,7 +1988,7 @@ void CAM_ThTick(struct Thread *t)
 			// instead (identical addresses on 32-bit hosts).
 			psVar20 = (s16 *)((u8 *)psVar19 + data.EndOfRace_Camera_Size[iVar7] + 2);
 
-			psVar15 = &gGT->level1->ptr_restart_points[uVar16];
+			psVar15 = &Level_Getptr_restart_points(gGT->level1)[uVar16];
 
 			if ((uVar22 == uVar16) || (uVar22 == psVar15->nextIndex_forward) || (uVar22 == psVar15->nextIndex_left) ||
 			    (uVar22 == psVar15->nextIndex_backward) || (uVar22 == psVar15->nextIndex_right))
@@ -2086,7 +2086,7 @@ void CAM_ThTick(struct Thread *t)
 	case 9:
 	case 13:
 		sVar6 = *psVar19;
-		psVar15 = gGT->level1->ptr_restart_points;
+		psVar15 = Level_Getptr_restart_points(gGT->level1);
 		cDC->trackPathProgress = 0;
 		cDC->trackPathNode = psVar15 + sVar6;
 		(cDC->transitionTo).pos.x = psVar21[2];
@@ -2405,7 +2405,7 @@ LAB_8001c150:
 		if ((psVar11 != 0) && (piVar12 = psVar11->visLeafSrc, piVar12 != 0))
 		{
 			cDC->visLeafSrc = piVar12;
-			gGT->unk1cac[1] = cDC->ptrQuadBlock - gGT->level1->ptr_mesh_info->ptrQuadBlockArray;
+			gGT->unk1cac[1] = cDC->ptrQuadBlock - Level_Getptr_mesh_info(gGT->level1)->ptrQuadBlockArray;
 		}
 		if (cDC->ptrQuadBlock != 0)
 		{

@@ -371,10 +371,10 @@ void LevInstDef_UnPack(struct mesh_info *ptr_mesh_info)
 
 	level1 = sdata->gGT->level1;
 
-	if (level1->ptrInstDefPtrArray != 0)
+	if (Level_GetptrInstDefPtrArray(level1) != 0)
 	{
 		// loop through all instDef pointers in the LEV
-		for (visInstSrc = level1->ptrInstDefPtrArray; visInstSrc[0] != 0; visInstSrc++)
+		for (visInstSrc = Level_GetptrInstDefPtrArray(level1); visInstSrc[0] != 0; visInstSrc++)
 		{
 			visInstSrc[0] = (struct InstDef *)visInstSrc[0]->ptrInstance;
 		}
@@ -413,10 +413,10 @@ void LevInstDef_RePack(struct mesh_info *ptr_mesh_info, b32 boolAdvHub)
 
 	level1 = sdata->gGT->level1;
 
-	if (level1->ptrInstDefPtrArray != 0)
+	if (Level_GetptrInstDefPtrArray(level1) != 0)
 	{
 		// loop through all instDef pointers in the LEV
-		for (visInstSrc = (struct Instance **)level1->ptrInstDefPtrArray; visInstSrc[0] != NULL; visInstSrc++)
+		for (visInstSrc = (struct Instance **)Level_GetptrInstDefPtrArray(level1); visInstSrc[0] != NULL; visInstSrc++)
 		{
 			struct Instance *inst = visInstSrc[0];
 			struct InstDef *instDef = inst->instDef;

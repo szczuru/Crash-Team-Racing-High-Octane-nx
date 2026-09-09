@@ -672,9 +672,9 @@ void AH_Map_Main(void)
 		sdata->HudAndDebugFlags = AH_MAP_HUD_AND_DEBUG_SPEEDOMETER;
 	}
 
-	if (gGT->level1->ptrSpawnType1->count != 0)
+	if (Level_GetptrSpawnType1(gGT->level1)->count != 0)
 	{
-		void **pointers = ST1_GETPOINTERS(gGT->level1->ptrSpawnType1);
+		void **pointers = ST1_GETPOINTERS(Level_GetptrSpawnType1(gGT->level1));
 		map = pointers[ST1_MAP];
 	}
 

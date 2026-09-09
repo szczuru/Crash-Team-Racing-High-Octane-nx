@@ -186,13 +186,13 @@ void RB_Armadillo_LInB(struct Instance *inst)
 	armObj->velX = inst->matrix.m[0][2] >> FPS_RIGHTSHIFT(7);
 	armObj->velZ = inst->matrix.m[2][2] >> FPS_RIGHTSHIFT(7);
 
-	if (sdata->gGT->level1->ptrSpawnType1->count <= 0)
+	if (Level_GetptrSpawnType1(sdata->gGT->level1)->count <= 0)
 	{
 		return;
 	}
 
 	// puts armadillos on separate cycles
-	pointers = ST1_GETPOINTERS(sdata->gGT->level1->ptrSpawnType1);
+	pointers = ST1_GETPOINTERS(Level_GetptrSpawnType1(sdata->gGT->level1));
 	metaArray = (s16 *)pointers[ST1_SPAWN];
 	armObj->timeAtEdge = FPS_DOUBLE(metaArray[inst->name[strlen(inst->name) - 1] - '0']);
 }

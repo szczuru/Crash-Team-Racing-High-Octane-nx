@@ -183,9 +183,9 @@ void VehStuckProc_MaskGrab_FindDestPos(struct Driver *d, struct QuadBlock *quad)
 {
 	struct GameTracker *gGT = sdata->gGT;
 	struct Level *level = gGT->level1;
-	struct mesh_info *mesh = level->ptr_mesh_info;
+	struct mesh_info *mesh = Level_Getptr_mesh_info(level);
 
-	if ((level->cnt_restart_points < 1) || (level->ptr_restart_points == NULL) || (quad->checkpointIndex == 0xff))
+	if ((level->cnt_restart_points < 1) || (Level_Getptr_restart_points(level) == NULL) || (quad->checkpointIndex == 0xff))
 	{
 		struct LevVertex *verts = mesh->ptrVertexArray;
 		struct LevVertex *v0 = &verts[quad->index[0]];
@@ -199,7 +199,7 @@ void VehStuckProc_MaskGrab_FindDestPos(struct Driver *d, struct QuadBlock *quad)
 	{
 		struct ScratchpadStruct *sps = CTR_SCRATCHPAD_PTR(struct ScratchpadStruct, 0x108);
 		struct Thread *driverThread = d->instSelf->thread;
-		struct CheckpointNode *respawn = &level->ptr_restart_points[quad->checkpointIndex];
+		struct CheckpointNode *respawn = &Level_Getptr_restart_points(level)[quad->checkpointIndex];
 		struct CheckpointNode *nextRespawn;
 
 		sps->Input1.hitRadius = driverThread->driverHitRadius;
@@ -215,7 +215,7 @@ void VehStuckProc_MaskGrab_FindDestPos(struct Driver *d, struct QuadBlock *quad)
 		{
 			do
 			{
-				nextRespawn = &level->ptr_restart_points[respawn->nextIndex_forward];
+				nextRespawn = &Level_Getptr_restart_points(level)[respawn->nextIndex_forward];
 
 				d->posCurr.x = CTR_MipsSll(respawn->pos.x, FRACTIONAL_BITS_8);
 				d->posCurr.y = CTR_MipsSll(CTR_MipsAddLo(respawn->pos.y, VEH_STUCK_RESPAWN_Y_OFFSET), FRACTIONAL_BITS_8);

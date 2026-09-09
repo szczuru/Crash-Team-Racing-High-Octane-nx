@@ -247,7 +247,7 @@ void RB_Orca_LInB(struct Instance *inst)
 
 	if (sdata->gGT->level1->numSpawnType2 != 0)
 	{
-		spawnType2 = &sdata->gGT->level1->ptrSpawnType2[orcaID + 4];
+		spawnType2 = &Level_GetptrSpawnType2(sdata->gGT->level1)[orcaID + 4];
 
 		orcaObj->startPos = spawnType2->positions[0];
 		orcaObj->endPos = spawnType2->positions[1];
@@ -259,12 +259,12 @@ void RB_Orca_LInB(struct Instance *inst)
 
 	orcaObj->numFrames = INSTANCE_GetNumAnimFrames(inst, 0);
 
-	if (sdata->gGT->level1->ptrSpawnType1->count <= 0)
+	if (Level_GetptrSpawnType1(sdata->gGT->level1)->count <= 0)
 	{
 		return;
 	}
 
-	pointers = ST1_GETPOINTERS(sdata->gGT->level1->ptrSpawnType1);
+	pointers = ST1_GETPOINTERS(Level_GetptrSpawnType1(sdata->gGT->level1));
 	metaArray = (s16 *)pointers[ST1_SPAWN];
 	orcaObj->cooldown = metaArray[orcaObj->orcaID];
 

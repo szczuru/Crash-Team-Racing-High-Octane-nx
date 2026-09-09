@@ -117,7 +117,7 @@ void BOTS_InitNavPath(struct GameTracker *gGT, s16 index)
 {
 	(void)gGT;
 	struct NavHeader *nh = 0;
-	struct NavHeader **LevNavTable = sdata->gGT->level1->LevNavTable;
+	struct NavHeader **LevNavTable = Level_GetLevNavTable(sdata->gGT->level1);
 
 	if (LevNavTable != 0)
 	{
@@ -195,13 +195,13 @@ internal s32 BOTS_GetTrackDistanceToFinish(struct GameTracker *gGT)
 	// NOTE(aalhendi): Menu-storage/wrong-warp can leave stale bot threads in
 	// levels without restart points. Retail blind-loads from low PSX memory;
 	// native uses zero so only stale AI spacing/rubberband math is affected.
-	if ((gGT->level1 == NULL) || (gGT->level1->ptr_restart_points == NULL))
+	if ((gGT->level1 == NULL) || (Level_Getptr_restart_points(gGT->level1) == NULL))
 	{
 		return 0;
 	}
 #endif
 
-	return CTR_MipsSll(gGT->level1->ptr_restart_points->distToFinish, 3);
+	return CTR_MipsSll(Level_Getptr_restart_points(gGT->level1)->distToFinish, 3);
 }
 
 // NOTE(aalhendi): ASM-verified NTSC-U 926 0x80012598-0x80013374.
@@ -660,7 +660,7 @@ void BOTS_LevInstColl(struct Thread *botThread)
 	struct Driver *driver = (struct Driver *)botThread->object;
 	struct ScratchpadStruct *sps = CTR_SCRATCHPAD_PTR(struct ScratchpadStruct, 0x108);
 
-	sps->ptr_mesh_info = sdata->gGT->level1->ptr_mesh_info;
+	sps->ptr_mesh_info = Level_Getptr_mesh_info(sdata->gGT->level1);
 	sps->Union.QuadBlockColl.searchFlags = COLL_SEARCH_TEST_INSTANCES;
 	sps->Input1.modelID = DYNAMIC_ROBOT_CAR;
 	sps->Union.QuadBlockColl.quadFlagsWanted = 0;
@@ -2098,7 +2098,7 @@ UpdateTireColorTimer:
 		    .z = probeZ,
 		};
 
-		sps->ptr_mesh_info = gGT->level1->ptr_mesh_info;
+		sps->ptr_mesh_info = Level_Getptr_mesh_info(gGT->level1);
 		sps->Union.QuadBlockColl.quadFlagsWanted = QUADBLOCK_FLAG_GROUND;
 		sps->Union.QuadBlockColl.quadFlagsIgnored = QUADBLOCK_FLAG_NO_COLLISION_RESPONSE;
 		sps->Union.QuadBlockColl.searchFlags = COLL_SEARCH_HIGH_LOD;
@@ -2869,7 +2869,7 @@ FinishHazardTimerUpdate:
 		    .z = probeZ,
 		};
 
-		sps->ptr_mesh_info = gGT->level1->ptr_mesh_info;
+		sps->ptr_mesh_info = Level_Getptr_mesh_info(gGT->level1);
 		sps->Union.QuadBlockColl.quadFlagsWanted = QUADBLOCK_FLAG_GROUND;
 		sps->Union.QuadBlockColl.quadFlagsIgnored = 0;
 		sps->Union.QuadBlockColl.searchFlags = COLL_SEARCH_HIGH_LOD;

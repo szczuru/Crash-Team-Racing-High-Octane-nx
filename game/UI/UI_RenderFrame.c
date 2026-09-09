@@ -146,12 +146,12 @@ void UI_RenderFrame_Racing()
 
 #ifdef CTR_NATIVE
 	// NOTE(aalhendi): Native can load levels before ST1 map metadata is present.
-	if ((gGT->level1->ptrSpawnType1 != 0) && (gGT->level1->ptrSpawnType1->count != 0))
+	if ((Level_GetptrSpawnType1(gGT->level1) != 0) && (Level_GetptrSpawnType1(gGT->level1)->count != 0))
 #else
-	if (gGT->level1->ptrSpawnType1->count != 0)
+	if (Level_GetptrSpawnType1(gGT->level1)->count != 0)
 #endif
 	{
-		void **pointers = ST1_GETPOINTERS(gGT->level1->ptrSpawnType1);
+		void **pointers = ST1_GETPOINTERS(Level_GetptrSpawnType1(gGT->level1));
 		levPtrMap = pointers[ST1_MAP];
 	}
 

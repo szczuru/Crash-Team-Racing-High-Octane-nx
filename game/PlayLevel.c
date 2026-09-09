@@ -262,7 +262,7 @@ void PlayLevel_UpdateLapStats(void)
 			// if player did not JUST cross finish backwards
 			else
 			{
-				u32 trackLen = gGT->level1->ptr_restart_points[0].distToFinish;
+				u32 trackLen = Level_Getptr_restart_points(gGT->level1)[0].distToFinish;
 
 				if (
 				    // if player did not EVER cross finish backwards

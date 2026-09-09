@@ -373,7 +373,7 @@ void GhostReplay_Init1(void)
 		else
 		{
 			s32 timeTrialFlags = sdata->gameProgress.highScoreTracks[gGT->levelID].timeTrialFlags;
-			void **pointers = ST1_GETPOINTERS(gGT->level1->ptrSpawnType1);
+			void **pointers = ST1_GETPOINTERS(Level_GetptrSpawnType1(gGT->level1));
 
 			gh = ((timeTrialFlags & TT_NTROPY_BEATEN) != 0) ? pointers[ST1_NOXIDE] : pointers[ST1_NTROPY];
 		}

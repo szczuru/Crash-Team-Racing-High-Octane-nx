@@ -97,7 +97,7 @@ void RB_Potion_ThTick_InAir(struct Thread *t)
 		sps->Union.QuadBlockColl.searchFlags = COLL_SEARCH_TEST_INSTANCES | COLL_SEARCH_HIGH_LOD | COLL_SEARCH_FORCE_INSTANCE_HIT;
 	}
 
-	sps->ptr_mesh_info = gGT->level1->ptr_mesh_info;
+	sps->ptr_mesh_info = Level_Getptr_mesh_info(gGT->level1);
 
 	COLL_SearchBSP_CallbackQUADBLK(&posBottom, &posTop, sps, 0);
 

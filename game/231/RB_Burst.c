@@ -280,7 +280,7 @@ void RB_Burst_Init(struct Instance *weaponInst)
 	CTR_MatrixSetRotIdentity(&currInst->matrix);
 
 	// set flag to always point to camera
-	headers = currInst->model->headers;
+	headers = Model_GetHeaders(currInst->model);
 	headers[0].flags |= 2;
 
 	// ======== Next one ===========
@@ -302,7 +302,7 @@ void RB_Burst_Init(struct Instance *weaponInst)
 	currInst->matrix.m[2][2] = 0x1000;
 
 	// set flag to always point to camera
-	headers = currInst->model->headers;
+	headers = Model_GetHeaders(currInst->model);
 	headers[0].flags |= 2;
 
 	// ======= Next One ===========
@@ -316,7 +316,7 @@ void RB_Burst_Init(struct Instance *weaponInst)
 	currInst->flags |= (VISIBLE_DURING_GAMEPLAY | DRAW_BILLBOARD);
 
 	// set flag to always point to camera
-	headers = currInst->model->headers;
+	headers = Model_GetHeaders(currInst->model);
 	headers[0].flags |= 2;
 	headers[1].flags |= 2;
 

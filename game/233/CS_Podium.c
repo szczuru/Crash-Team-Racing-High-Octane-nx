@@ -714,7 +714,7 @@ void CS_Podium_FullScene_Init(void)
 
 	// position and rotation of podium scene
 	// Y coordinate (podiumPos.y) has added height
-	posRot = gGT->level1->ptrSpawnType2_PosRot[1].posRot;
+	posRot = Level_GetptrSpawnType2_PosRot(gGT->level1)[1].posRot;
 	InitData.podiumPos.x = posRot->pos.x;
 	InitData.podiumPos.y = posRot->pos.y + PODIUM_SCENE_SPAWN_Y_OFFSET;
 	InitData.podiumPos.z = posRot->pos.z;

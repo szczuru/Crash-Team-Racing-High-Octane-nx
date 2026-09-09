@@ -53,7 +53,7 @@ void MainFrame_RenderFrame(struct GameTracker *gGT, struct GamepadSystem *gGamep
 
 	if (lev != 0)
 	{
-		ptr_mesh_info = lev->ptr_mesh_info;
+		ptr_mesh_info = Level_Getptr_mesh_info(lev);
 	}
 
 	if ((gGT->renderFlags & RENDER_FLAG_VISMEM_REFRESH_MASK) != 0)
@@ -68,7 +68,7 @@ void MainFrame_RenderFrame(struct GameTracker *gGT, struct GamepadSystem *gGamep
 		{
 			if (lev != 0)
 			{
-				CTR_CycleTex_LEV(lev->ptr_anim_tex, gGT->timer);
+				CTR_CycleTex_LEV(Level_Getptr_anim_tex(lev), gGT->timer);
 			}
 		}
 	}
@@ -226,7 +226,7 @@ void MainFrame_RenderFrame(struct GameTracker *gGT, struct GamepadSystem *gGamep
 		// NOTE(aalhendi): Native menu/adventure-hub LEVs may publish no
 		// restart table. Retail lap stats assume the table exists whenever
 		// this caller reaches them; keep the ASM-verified lap function intact.
-		if ((gGT->level1 != NULL) && (gGT->level1->ptr_restart_points != NULL) && (gGT->level1->cnt_restart_points != 0))
+		if ((gGT->level1 != NULL) && (Level_Getptr_restart_points(gGT->level1) != NULL) && (gGT->level1->cnt_restart_points != 0))
 		{
 			PlayLevel_UpdateLapStats();
 		}
@@ -748,7 +748,7 @@ void RenderAllHUD(struct GameTracker *gGT)
 					{
 						gGT->overlayTransition = 0;
 
-						INSTANCE_LevDelayedLInBs(gGT->level1->ptrInstDefs, gGT->level1->numInstances);
+						INSTANCE_LevDelayedLInBs(Level_GetptrInstDefs(gGT->level1), gGT->level1->numInstances);
 
 						// allow instances again
 						gGT->gameMode2 &= ~(NO_LEV_INSTANCE);
@@ -1138,14 +1138,15 @@ void RenderAllLevelGeometry(struct GameTracker *gGT, struct Level *level1, struc
 		if ((level1->configFlags & 4) == 0)
 		{
 			// assume OVert (no primitives generated here)
-			AnimateWater1P(FPS_HALF(gGT->timer), level1->numWaterVertices, level1->ptr_water, level1->ptr_tex_waterEnvMap, gGT->visMem1->visOVertList[0]);
+			AnimateWater1P(FPS_HALF(gGT->timer), level1->numWaterVertices, Level_Getptr_water(level1), Level_Getptr_tex_waterEnvMap(level1),
+			               gGT->visMem1->visOVertList[0]);
 		}
 
 		// if SCVert
 		else
 		{
 			// draw SCVert (no primitives generated here
-			AnimateQuad(gGT->timer << FPS_LEFTSHIFT(7), level1->numSCVert, level1->ptrSCVert, gGT->visMem1->visSCVertList[0]);
+			AnimateQuad(gGT->timer << FPS_LEFTSHIFT(7), level1->numSCVert, Level_GetptrSCVert(level1), gGT->visMem1->visSCVertList[0]);
 		}
 
 		// camera of player 1
@@ -1195,9 +1196,9 @@ void RenderAllLevelGeometry(struct GameTracker *gGT, struct Level *level1, struc
 
 		// 226-229
 		DrawLevelOvr1P(&gGT->LevRenderLists[0], pushBuffer, (struct BSP *)ptr_mesh_info, &gGT->backBuffer->primMem, gGT->visMem1->visFaceList[0],
-		               level1->ptr_tex_waterEnvMap); // waterEnvMap?
+		               Level_Getptr_tex_waterEnvMap(level1)); // waterEnvMap?
 
-		DrawSky_Full(level1->ptr_skybox, pushBuffer, &gGT->backBuffer->primMem);
+		DrawSky_Full(Level_Getptr_skybox(level1), pushBuffer, &gGT->backBuffer->primMem);
 
 		// skybox gradient
 		if ((level1->configFlags & 1) != 0)
@@ -1216,8 +1217,8 @@ void RenderAllLevelGeometry(struct GameTracker *gGT, struct Level *level1, struc
 		if ((level1->configFlags & 4) == 0)
 		{
 			// assume OVert (no primitives generated here)
-			AnimateWater2P(gGT->timer, level1->numWaterVertices, level1->ptr_water, level1->ptr_tex_waterEnvMap, gGT->visMem1->visOVertList[0],
-			               gGT->visMem1->visOVertList[1]);
+			AnimateWater2P(gGT->timer, level1->numWaterVertices, Level_Getptr_water(level1), Level_Getptr_tex_waterEnvMap(level1),
+			               gGT->visMem1->visOVertList[0], gGT->visMem1->visOVertList[1]);
 		}
 
 		gGT->bspLeafsDrawn = 0;
@@ -1243,7 +1244,7 @@ void RenderAllLevelGeometry(struct GameTracker *gGT, struct Level *level1, struc
 			                                           gGT->visMem1->bspList[i], 1);
 
 			DrawLevelOvr1P_WithContext(&gGT->LevRenderLists[i], pushBuffer, (struct BSP *)ptr_mesh_info, &gGT->backBuffer->primMem,
-			                            gGT->visMem1->visFaceList[i], level1->ptr_tex_waterEnvMap, data.PtrClipBuffer[i],
+			                            gGT->visMem1->visFaceList[i], Level_Getptr_tex_waterEnvMap(level1), data.PtrClipBuffer[i],
 			                            (struct QuadBlock **)data.ptrRenderedQuadblockDestination_forEachPlayer[i]);
 		}
 #else
@@ -1255,7 +1256,7 @@ void RenderAllLevelGeometry(struct GameTracker *gGT, struct Level *level1, struc
 		}
 
 		DrawLevelOvr2P(&gGT->LevRenderLists[0], &gGT->pushBuffer[0], (struct BSP *)ptr_mesh_info, &gGT->backBuffer->primMem, gGT->visMem1->visFaceList[0],
-		               gGT->visMem1->visFaceList[1], level1->ptr_tex_waterEnvMap);
+		               gGT->visMem1->visFaceList[1], Level_Getptr_tex_waterEnvMap(level1));
 #endif
 
 		goto SkyboxGlow;
@@ -1270,15 +1271,15 @@ void RenderAllLevelGeometry(struct GameTracker *gGT, struct Level *level1, struc
 		if (numPlyrCurrGame == 3)
 		{
 			// assume OVert (no primitives generated here)
-			AnimateWater3P(gGT->timer, level1->numWaterVertices, level1->ptr_water, level1->ptr_tex_waterEnvMap, gGT->visMem1->visOVertList[0],
-			               gGT->visMem1->visOVertList[1], gGT->visMem1->visOVertList[2]);
+			AnimateWater3P(gGT->timer, level1->numWaterVertices, Level_Getptr_water(level1), Level_Getptr_tex_waterEnvMap(level1),
+			               gGT->visMem1->visOVertList[0], gGT->visMem1->visOVertList[1], gGT->visMem1->visOVertList[2]);
 		}
 
 		else // 4P mode
 		{
 			// assume OVert (no primitives generated here)
-			AnimateWater4P(gGT->timer, level1->numWaterVertices, level1->ptr_water, level1->ptr_tex_waterEnvMap, gGT->visMem1->visOVertList[0],
-			               gGT->visMem1->visOVertList[1], gGT->visMem1->visOVertList[2], gGT->visMem1->visOVertList[3]);
+			AnimateWater4P(gGT->timer, level1->numWaterVertices, Level_Getptr_water(level1), Level_Getptr_tex_waterEnvMap(level1),
+			               gGT->visMem1->visOVertList[0], gGT->visMem1->visOVertList[1], gGT->visMem1->visOVertList[2], gGT->visMem1->visOVertList[3]);
 		}
 	}
 
@@ -1296,7 +1297,7 @@ void RenderAllLevelGeometry(struct GameTracker *gGT, struct Level *level1, struc
 		// 226-229
 		DrawLevelOvr3P(&gGT->LevRenderLists[0], &gGT->pushBuffer[0], (struct BSP *)ptr_mesh_info, &gGT->backBuffer->primMem, gGT->visMem1->visFaceList[0],
 		               gGT->visMem1->visFaceList[1], gGT->visMem1->visFaceList[2],
-		               level1->ptr_tex_waterEnvMap); // waterEnvMap?
+		               Level_Getptr_tex_waterEnvMap(level1)); // waterEnvMap?
 	}
 
 	else // 4P mode
@@ -1304,7 +1305,7 @@ void RenderAllLevelGeometry(struct GameTracker *gGT, struct Level *level1, struc
 		// 226-229
 		DrawLevelOvr4P(&gGT->LevRenderLists[0], &gGT->pushBuffer[0], (struct BSP *)ptr_mesh_info, &gGT->backBuffer->primMem, gGT->visMem1->visFaceList[0],
 		               gGT->visMem1->visFaceList[1], gGT->visMem1->visFaceList[2], gGT->visMem1->visFaceList[3],
-		               level1->ptr_tex_waterEnvMap); // waterEnvMap?
+		               Level_Getptr_tex_waterEnvMap(level1)); // waterEnvMap?
 	}
 
 SkyboxGlow:

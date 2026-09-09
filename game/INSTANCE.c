@@ -387,12 +387,12 @@ void INSTANCE_LevDelayedLInBs(struct InstDef *instDef, int numInstances)
 
 b32 INSTANCE_Use60FpsAnimation(struct Instance *inst)
 {
-	if (!CTR_NATIVE_60FPS_ACTIVE || (inst == NULL) || (inst->model == NULL) || (inst->model->numHeaders <= 0) || (inst->model->headers == NULL))
+	if (!CTR_NATIVE_60FPS_ACTIVE || (inst == NULL) || (inst->model == NULL) || (inst->model->numHeaders <= 0) || (Model_GetHeaders(inst->model) == NULL))
 	{
 		return false;
 	}
 
-	if (memcmp(inst->model->headers[0].name, "big1", 4) == 0)
+	if (memcmp(Model_GetHeaders(inst->model)[0].name, "big1", 4) == 0)
 	{
 		return false;
 	}
@@ -430,7 +430,7 @@ u16 INSTANCE_GetNumAnimFrames(struct Instance *pInstance, int animIndex)
 		if (pModel->numHeaders > 0)
 		{
 			// get first header ptr and validate
-			if (pHeader = pModel->headers, pHeader != NULL)
+			if (pHeader = Model_GetHeaders(pModel), pHeader != NULL)
 			{
 				// if header got animations
 				if (pHeader->ptrAnimations != NULL)

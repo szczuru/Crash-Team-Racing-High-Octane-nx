@@ -243,7 +243,7 @@ LAB_800adc08:;
 		sps->Union.QuadBlockColl.searchFlags = COLL_SEARCH_TEST_INSTANCES | COLL_SEARCH_HIGH_LOD | COLL_SEARCH_FORCE_INSTANCE_HIT;
 	}
 
-	sps->ptr_mesh_info = gGT->level1->ptr_mesh_info;
+	sps->ptr_mesh_info = Level_Getptr_mesh_info(gGT->level1);
 
 	COLL_SearchBSP_CallbackQUADBLK(&posA, &posB, sps, 0);
 

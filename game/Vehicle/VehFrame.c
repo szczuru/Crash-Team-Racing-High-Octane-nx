@@ -83,12 +83,12 @@ u32 VehFrameInst_GetNumAnimFrames(struct Instance *inst, int animIndex)
 	{
 		return 0;
 	}
-	if (inst->model->headers == NULL)
+	if (Model_GetHeaders(inst->model) == NULL)
 	{
 		return 0;
 	}
 
-	struct ModelHeader *mh = inst->model->headers;
+	struct ModelHeader *mh = Model_GetHeaders(inst->model);
 
 	if (animIndex >= (int)mh->numAnimations)
 	{

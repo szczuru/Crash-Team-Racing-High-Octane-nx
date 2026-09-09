@@ -513,14 +513,14 @@ void MM_Title_Init(void)
 	    (gGT->modelPtr[STATIC_RINGTOP] != 0) &&
 
 	    // IntroCam ptr exists
-	    (gGT->level1->ptrSpawnType1->count > 2))
+	    (Level_GetptrSpawnType1(gGT->level1)->count > 2))
 	{
 		// freecam mode
 		gGT->cameraDC[0].cameraMode = CAMERA_MODE_FREECAM;
 
 		gGT->pushBuffer[0].distanceToScreen_CURR = TITLE_INTRO_DISTANCE_TO_SCREEN;
 
-		void **pointers = ST1_GETPOINTERS(gGT->level1->ptrSpawnType1);
+		void **pointers = ST1_GETPOINTERS(Level_GetptrSpawnType1(gGT->level1));
 
 		// pointer to Intro Cam, to view Crash holding Trophy in main menu
 		D230.titleIntroCameraPath = pointers[ST1_CAMERA_PATH];

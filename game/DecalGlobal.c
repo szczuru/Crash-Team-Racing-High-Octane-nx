@@ -77,7 +77,7 @@ void DecalGlobal_Store(struct GameTracker *gGT, struct LevTexLookup *LTL)
 // NOTE(aalhendi): ASM-verified NTSC-U 926 0x80022c88-0x80022d2c.
 int *DecalGlobal_FindInLEV(struct Level *level, char *str)
 {
-	struct LevTexLookup *ltl = level->levTexLookup;
+	struct LevTexLookup *ltl = Level_GetlevTexLookup(level);
 
 	if (ltl == NULL)
 	{

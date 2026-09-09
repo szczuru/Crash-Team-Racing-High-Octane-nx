@@ -276,7 +276,7 @@ void RB_Seal_LInB(struct Instance *inst)
 
 	if (sdata->gGT->level1->numSpawnType2 != 0)
 	{
-		spawnType2 = &sdata->gGT->level1->ptrSpawnType2[sealObj->sealID];
+		spawnType2 = &Level_GetptrSpawnType2(sdata->gGT->level1)[sealObj->sealID];
 
 		sealObj->spawnPos = spawnType2->positions[0];
 		sealObj->endPos = spawnType2->positions[1];

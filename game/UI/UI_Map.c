@@ -89,9 +89,9 @@ void UI_Map_DrawMap(struct Icon *mapTop, struct Icon *mapBottom, s16 posX, s16 p
 		transparency = 0;
 	}
 
-	if (gGT->level1->ptrSpawnType1 != 0)
+	if (Level_GetptrSpawnType1(gGT->level1) != 0)
 	{
-		void **pointers = ST1_GETPOINTERS(gGT->level1->ptrSpawnType1);
+		void **pointers = ST1_GETPOINTERS(Level_GetptrSpawnType1(gGT->level1));
 		mapMetadata = pointers[ST1_MAP];
 	}
 
@@ -158,9 +158,9 @@ void UI_Map_DrawMap_ExtraFunc(struct Icon *icon, POLY_FT4 *p, s16 posX, s16 empt
 
 	// In-race map coordinates are projected around iconStartX.  Scale the
 	// map around that same origin so its route icons remain registered.
-	if (((sdata->gGT->gameMode1 & MAIN_MENU) == 0) && (sdata->gGT->level1 != NULL) && (sdata->gGT->level1->ptrSpawnType1 != NULL))
+	if (((sdata->gGT->gameMode1 & MAIN_MENU) == 0) && (sdata->gGT->level1 != NULL) && (Level_GetptrSpawnType1(sdata->gGT->level1) != NULL))
 	{
-		void **pointers = ST1_GETPOINTERS(sdata->gGT->level1->ptrSpawnType1);
+		void **pointers = ST1_GETPOINTERS(Level_GetptrSpawnType1(sdata->gGT->level1));
 		struct UIMap *map = pointers[ST1_MAP];
 		if (map != NULL)
 		{

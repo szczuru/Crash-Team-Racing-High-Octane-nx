@@ -87,7 +87,7 @@ void RB_Minecart_ThTick(struct Thread *t)
 	}
 
 	// path coordinates for minecarts
-	spawnType2 = &level->ptrSpawnType2[0];
+	spawnType2 = &Level_GetptrSpawnType2(level)[0];
 	numCoords = spawnType2->numCoords;
 
 	// between two points
@@ -208,7 +208,7 @@ void RB_Minecart_LInB(struct Instance *inst)
 	}
 
 	// path coordinates for minecarts
-	spawnType2 = &sdata->gGT->level1->ptrSpawnType2[0];
+	spawnType2 = &Level_GetptrSpawnType2(sdata->gGT->level1)[0];
 
 	// from instance
 	minecartID = inst->name[strlen(inst->name) - 1] - '0';

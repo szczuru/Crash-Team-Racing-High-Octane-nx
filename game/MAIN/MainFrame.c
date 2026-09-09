@@ -292,7 +292,7 @@ void MainFrame_GameLogic(struct GameTracker *gGT, struct GamepadSystem *gGamepad
 		}
 
 		CTR_CycleTex_AllModels(-1, (struct Model **)sdata->PLYROBJECTLIST, gGT->timer);
-		CTR_CycleTex_AllModels(gGT->level1->numModels, gGT->level1->ptrModelsPtrArray, gGT->timer);
+		CTR_CycleTex_AllModels(gGT->level1->numModels, Level_GetptrModelsPtrArray(gGT->level1), gGT->timer);
 
 		psVar8 = 0;
 		psVar9 = 0;
@@ -705,7 +705,7 @@ static int MainFrame_VisMemHasQuad(const int *visFaceList, const struct QuadBloc
 static void MainFrame_VisMemAddDriverPVS(struct GameTracker *gGT, int playerIndex, int visIndex)
 {
 	struct Driver *driver = gGT->drivers[playerIndex];
-	struct mesh_info *mesh = gGT->level1->ptr_mesh_info;
+	struct mesh_info *mesh = Level_Getptr_mesh_info(gGT->level1);
 	struct QuadBlock *quad = driver->underDriver;
 	struct PVS *pvs;
 
@@ -756,7 +756,7 @@ void MainFrame_VisMemFullFrame(struct GameTracker *gGT, struct Level *level)
 		return;
 	}
 
-	mesh = level->ptr_mesh_info;
+	mesh = Level_Getptr_mesh_info(level);
 
 	playerStart = 0;
 	playerEnd = gGT->numPlyrCurrGame;
@@ -955,12 +955,12 @@ void MainFrame_VisMemFullFrame(struct GameTracker *gGT, struct Level *level)
 				}
 				else
 				{
-					memcpy(visMem->visOVertList[visIndex], level->visOVertSrc, ((level->numWaterVertices + 0x1f) >> 5) << 2);
+					memcpy(visMem->visOVertList[visIndex], Level_GetvisOVertSrc(level), ((level->numWaterVertices + 0x1f) >> 5) << 2);
 				}
 			}
 			else if (visMem->visOVertSrc[visIndex] == NULL)
 			{
-				memcpy(visMem->visOVertList[visIndex], level->visOVertSrc, ((level->numWaterVertices + 0x1f) >> 5) << 2);
+				memcpy(visMem->visOVertList[visIndex], Level_GetvisOVertSrc(level), ((level->numWaterVertices + 0x1f) >> 5) << 2);
 			}
 		}
 		else
@@ -975,12 +975,12 @@ void MainFrame_VisMemFullFrame(struct GameTracker *gGT, struct Level *level)
 				}
 				else
 				{
-					memcpy(visMem->visSCVertList[visIndex], level->visSCVertSrc, ((level->numSCVert + 0x1f) >> 5) << 2);
+					memcpy(visMem->visSCVertList[visIndex], Level_GetvisSCVertSrc(level), ((level->numSCVert + 0x1f) >> 5) << 2);
 				}
 			}
 			else if (visMem->visSCVertSrc[visIndex] == NULL)
 			{
-				memcpy(visMem->visSCVertList[visIndex], level->visSCVertSrc, ((level->numSCVert + 0x1f) >> 5) << 2);
+				memcpy(visMem->visSCVertList[visIndex], Level_GetvisSCVertSrc(level), ((level->numSCVert + 0x1f) >> 5) << 2);
 			}
 		}
 	}
