@@ -325,6 +325,10 @@ void *LOAD_VramFile(void *bigfilePtr, int subfileIndex, void *ptrDestination, u3
 void LOAD_ReadFileASyncCallback(u8 result, u8 *unk)
 {
 	(void)unk;
+#if defined(__SWITCH__)
+	printf("[CTR Native/Diag] LOAD_ReadFileASyncCallback: enter, result=%d\n", result);
+	fflush(stdout);
+#endif
 	CdReadCallback(0);
 	result &= 0xff;
 
@@ -343,7 +347,15 @@ void LOAD_ReadFileASyncCallback(u8 result, u8 *unk)
 
 		if (sdata->callbackCdReadSuccess != NULL)
 		{
+#if defined(__SWITCH__)
+			printf("[CTR Native/Diag] LOAD_ReadFileASyncCallback: calling callbackCdReadSuccess=%p\n", (void *)sdata->callbackCdReadSuccess);
+			fflush(stdout);
+#endif
 			sdata->callbackCdReadSuccess(lqs);
+#if defined(__SWITCH__)
+			printf("[CTR Native/Diag] LOAD_ReadFileASyncCallback: callbackCdReadSuccess returned\n");
+			fflush(stdout);
+#endif
 		}
 	}
 
@@ -475,11 +487,19 @@ void *LOAD_ReadFile_ex(struct BigHeader *bigfile, u32 loadType, int subfileIndex
 		}
 
 		uVar5 &= CdRead(sectorCount, ptrDst, CdlModeSpeed);
+#if defined(__SWITCH__)
+		printf("[CTR Native/Diag] LOAD_ReadFile_ex: CdRead returned, uVar5=%d (async=%d)\n", uVar5, callback != NULL);
+		fflush(stdout);
+#endif
 
 		if (callback == NULL)
 		{
 			// Wait for all sectors to finish
 			readComplete = CdReadSync(0, (u8 *)0x0) == 0;
+#if defined(__SWITCH__)
+			printf("[CTR Native/Diag] LOAD_ReadFile_ex: CdReadSync returned, readComplete=%d\n", readComplete);
+			fflush(stdout);
+#endif
 		}
 
 		// If either command failed, or sync read did not finish, retry.

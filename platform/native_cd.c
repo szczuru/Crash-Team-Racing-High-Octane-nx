@@ -628,6 +628,15 @@ int CdRead(int sectors, uint32_t *buf, int mode)
 
 	(void)mode;
 
+#if defined(__SWITCH__)
+	/* NOTE(aalhendi): CdRead only ever runs on the main thread (called
+	 * synchronously from LOAD_ReadFile_ex), so printf here is safe - it is
+	 * NOT called from NativeCD_ReadWorkerThread. */
+	printf("[CTR Native/Diag] CdRead: enter, sectors=%d buf=%p mode=%d curFile=%d curSector=%d workerMutex=%p\n", sectors, buf, mode,
+	       s_nativeCdCurrentFile, s_nativeCdCurrentSector, (void *)s_nativeCdReadWorker.mutex);
+	fflush(stdout);
+#endif
+
 	if ((sectors <= 0) || (buf == NULL))
 	{
 		return 0;
@@ -648,9 +657,18 @@ int CdRead(int sectors, uint32_t *buf, int mode)
 	}
 
 	SDL_LockMutex(s_nativeCdReadWorker.mutex);
+#if defined(__SWITCH__)
+	printf("[CTR Native/Diag] CdRead: got mutex, pending=%d busy=%d complete=%d\n", s_nativeCdReadWorker.pending, s_nativeCdReadWorker.busy,
+	       s_nativeCdReadWorker.complete);
+	fflush(stdout);
+#endif
 	if (s_nativeCdReadWorker.pending || s_nativeCdReadWorker.busy || s_nativeCdReadWorker.complete)
 	{
 		SDL_UnlockMutex(s_nativeCdReadWorker.mutex);
+#if defined(__SWITCH__)
+		printf("[CTR Native/Diag] CdRead: worker busy, returning 0\n");
+		fflush(stdout);
+#endif
 		return 0;
 	}
 
@@ -660,6 +678,10 @@ int CdRead(int sectors, uint32_t *buf, int mode)
 	if ((fileIndex < 0) || (fileIndex >= s_nativeCdFileCount) || (s_nativeCdFiles[fileIndex].source == NATIVE_CD_FILE_NONE))
 	{
 		SDL_UnlockMutex(s_nativeCdReadWorker.mutex);
+#if defined(__SWITCH__)
+		printf("[CTR Native/Diag] CdRead: invalid fileIndex=%d fileCount=%d, returning 0\n", fileIndex, s_nativeCdFileCount);
+		fflush(stdout);
+#endif
 		return 0;
 	}
 
@@ -672,6 +694,11 @@ int CdRead(int sectors, uint32_t *buf, int mode)
 	s_nativeCdReadWorker.pending = 1;
 	SDL_SignalCondition(s_nativeCdReadWorker.condition);
 	SDL_UnlockMutex(s_nativeCdReadWorker.mutex);
+#if defined(__SWITCH__)
+	printf("[CTR Native/Diag] CdRead: queued for worker, fileIndex=%d firstSector=%d sectors=%d callback=%p, returning 1\n", fileIndex, firstSector,
+	       sectors, (void *)callback);
+	fflush(stdout);
+#endif
 	return 1;
 }
 

@@ -116,7 +116,7 @@ u32 main(void)
 				s_diagLastLoadingStage = sdata->Loading.stage;
 			}
 			s_diagHeartbeat++;
-			if ((s_diagHeartbeat % 180) == 0)
+			if ((s_diagHeartbeat % 30) == 0)
 			{
 				int cdReadsStarted, cdReadsFinished, cdLastFileIndex, cdLastSuccess, cdPumpDispatchCount;
 				NativeCD_DiagGetCounters(&cdReadsStarted, &cdReadsFinished, &cdLastFileIndex, &cdLastSuccess, &cdPumpDispatchCount);
