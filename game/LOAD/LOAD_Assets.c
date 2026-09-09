@@ -86,7 +86,7 @@ void LOAD_Robots1P(int characterID)
 static void (*const LOAD_DriverMPK_SetPointer)(struct LoadQueueSlot *) = LOAD_QUEUE_CALLBACK_SET_POINTER;
 
 // NOTE(aalhendi): ASM-verified NTSC-U 926 0x8003282c-0x80032b50.
-int LOAD_DriverMPK(struct BigHeader *bigfile, int levelLOD, void (*callback)(struct LoadQueueSlot *))
+void *LOAD_DriverMPK(struct BigHeader *bigfile, int levelLOD, void (*callback)(struct LoadQueueSlot *))
 {
 	int i;
 	int gameMode1;

@@ -395,12 +395,18 @@ int LOAD_TenStages(struct GameTracker *gGT, int loadingStage, struct BigHeader *
 		// clear and reset
 		LibraryOfModels_Clear(gGT);
 
-		// NOTE: ptrMPK is `int` and mpkIcons is `u32` (retail 32-bit RAM
-		// address slots) - route the round-trips through (uintptr_t) instead
-		// of a direct int<->pointer cast, avoiding -Wint-to-pointer-cast on
-		// 64-bit hosts.
-		sdata->PLYROBJECTLIST = (int **)((uintptr_t)sdata->ptrMPK + 4);
-		if (sdata->ptrMPK == 0)
+		// NOTE(aalhendi): ptrMPK is now a real pointer type (see
+		// regionsEXE.h) - same treatment as ptrLevelFile/PatchMem_Ptr. This
+		// used to round-trip through (uintptr_t)/(int) casts, which
+		// truncated the real 64-bit host pointer stored in ptrMPK by
+		// LOAD_Callback_DriverModels on Switch and made every subsequent
+		// dereference below read from a wild address (the actual freeze
+		// point traced on hardware). mpkIcons (u32, a retail 32-bit RAM
+		// address slot inside the loaded MPK buffer, NOT a real host
+		// pointer here) is still read via uintptr_t round-trip since it is
+		// a value stored inside file data, not this struct's own field.
+		sdata->PLYROBJECTLIST = (int **)((u8 *)sdata->ptrMPK + 4);
+		if (sdata->ptrMPK == NULL)
 		{
 			sdata->PLYROBJECTLIST = 0;
 		}
@@ -409,9 +415,9 @@ int LOAD_TenStages(struct GameTracker *gGT, int loadingStage, struct BigHeader *
 		DecalGlobal_Clear(gGT);
 
 		gGT->mpkIcons = 0;
-		if (sdata->ptrMPK != 0)
+		if (sdata->ptrMPK != NULL)
 		{
-			gGT->mpkIcons = *(int *)(uintptr_t)sdata->ptrMPK;
+			gGT->mpkIcons = *(u32 *)sdata->ptrMPK;
 
 			if (gGT->mpkIcons != 0)
 			{

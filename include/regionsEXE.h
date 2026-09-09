@@ -2977,7 +2977,16 @@ struct sData
 	// 8008bfe0 - JpnTrial
 	// 8008d41c - EurRetail
 	// 80090490 - JpnRetail
-	int ptrMPK; // maybe is `void*` instead of `int`
+	// NOTE(aalhendi): Retail stores this as a 32-bit RAM address slot (int).
+	// Widened to a real pointer type here - same treatment as the sibling
+	// ptrLevelFile/PatchMem_Ptr fields just below, which were already `struct
+	// Level *`/`void *`. On 64-bit Switch this field holds a real host
+	// pointer (the MEMPACK-allocated driver-model buffer set by
+	// LOAD_Callback_DriverModels); storing it as `int` truncated the upper
+	// bits and made every later dereference (LOAD_TenStages case 5) read
+	// from a wild address. No-op size/layout change on 32-bit hosts
+	// (PC/Vita), matching how ptrLevelFile/PatchMem_Ptr are already handled.
+	void *ptrMPK;
 
 	// 8008d08c
 	// ptrLEV, stored here during loading,

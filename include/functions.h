@@ -352,7 +352,7 @@ void *LIST_GetFirstItem(struct LinkedList *L);
 void *LIST_GetNextItem(struct Item *I);
 
 void LOAD_AppendQueue(struct BigHeader *bigfile, int type, int fileIndex, void *destinationPtr, void (*callback)(struct LoadQueueSlot *));
-int LOAD_DriverMPK(struct BigHeader *bigfile, int levelLOD, void (*callback)(struct LoadQueueSlot *));
+void *LOAD_DriverMPK(struct BigHeader *bigfile, int levelLOD, void (*callback)(struct LoadQueueSlot *));
 void LOAD_Hub_Main(struct BigHeader *bigfilePtr);
 void LOAD_Hub_ReadFile(struct BigHeader *bigfile, int levID, int packID);
 void LIST_Init(struct LinkedList *L, struct Item *item, int itemSize, int numItems);
