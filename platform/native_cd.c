@@ -275,6 +275,11 @@ internal int SDLCALL NativeCD_ReadWorkerThread(void *unused)
 	(void)unused;
 	SDL_SetCurrentThreadPriority(SDL_THREAD_PRIORITY_LOW);
 
+#if defined(__SWITCH__)
+	printf("[CTR Native/Diag] NativeCD_ReadWorkerThread: worker thread started\n");
+	fflush(stdout);
+#endif
+
 	for (;;)
 	{
 		s32 fileIndex;
@@ -303,7 +308,18 @@ internal int SDLCALL NativeCD_ReadWorkerThread(void *unused)
 		s_nativeCdReadWorker.busy = 1;
 		SDL_UnlockMutex(s_nativeCdReadWorker.mutex);
 
+#if defined(__SWITCH__)
+		printf("[CTR Native/Diag] NativeCD_ReadWorkerThread: reading fileIndex=%d firstSector=%d sectorCount=%d dst=%p\n", fileIndex, firstSector,
+		       sectorCount, destination);
+		fflush(stdout);
+#endif
+
 		success = NativeCD_ReadSectorsAt(fileIndex, firstSector, sectorCount, destination);
+
+#if defined(__SWITCH__)
+		printf("[CTR Native/Diag] NativeCD_ReadWorkerThread: read finished, success=%d\n", success);
+		fflush(stdout);
+#endif
 
 		SDL_LockMutex(s_nativeCdReadWorker.mutex);
 		s_nativeCdReadWorker.busy = 0;
@@ -323,6 +339,11 @@ internal s32 NativeCD_ReadWorkerInit(void)
 	s_nativeCdReadWorker.condition = SDL_CreateCondition();
 	if ((s_nativeCdReadWorker.mutex == NULL) || (s_nativeCdReadWorker.condition == NULL))
 	{
+#if defined(__SWITCH__)
+		printf("[CTR Native/Diag] NativeCD_ReadWorkerInit: mutex/condition creation FAILED (mutex=%p cond=%p)\n", (void *)s_nativeCdReadWorker.mutex,
+		       (void *)s_nativeCdReadWorker.condition);
+		fflush(stdout);
+#endif
 		SDL_DestroyCondition(s_nativeCdReadWorker.condition);
 		SDL_DestroyMutex(s_nativeCdReadWorker.mutex);
 		memset(&s_nativeCdReadWorker, 0, sizeof(s_nativeCdReadWorker));
@@ -332,11 +353,20 @@ internal s32 NativeCD_ReadWorkerInit(void)
 	s_nativeCdReadWorker.thread = SDL_CreateThread(NativeCD_ReadWorkerThread, "CTR CD Reader", NULL);
 	if (s_nativeCdReadWorker.thread == NULL)
 	{
+#if defined(__SWITCH__)
+		printf("[CTR Native/Diag] NativeCD_ReadWorkerInit: SDL_CreateThread FAILED\n");
+		fflush(stdout);
+#endif
 		SDL_DestroyCondition(s_nativeCdReadWorker.condition);
 		SDL_DestroyMutex(s_nativeCdReadWorker.mutex);
 		memset(&s_nativeCdReadWorker, 0, sizeof(s_nativeCdReadWorker));
 		return 0;
 	}
+
+#if defined(__SWITCH__)
+	printf("[CTR Native/Diag] NativeCD_ReadWorkerInit: worker thread created successfully\n");
+	fflush(stdout);
+#endif
 
 	return 1;
 }
@@ -393,7 +423,15 @@ void NativeCD_PumpCallbacks(void)
 
 	if (callback != NULL)
 	{
+#if defined(__SWITCH__)
+		printf("[CTR Native/Diag] NativeCD_PumpCallbacks: dispatching callback=%p success=%d\n", (void *)callback, success);
+		fflush(stdout);
+#endif
 		callback(success ? CdlComplete : CdlDiskError, NULL);
+#if defined(__SWITCH__)
+		printf("[CTR Native/Diag] NativeCD_PumpCallbacks: callback returned\n");
+		fflush(stdout);
+#endif
 	}
 }
 

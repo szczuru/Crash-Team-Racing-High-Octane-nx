@@ -103,6 +103,7 @@ u32 main(void)
 		{
 			static int s_diagLastMainGameState = -999;
 			static int s_diagLastLoadingStage = -999;
+			static int s_diagHeartbeat = 0;
 			if ((sdata->mainGameState != s_diagLastMainGameState) || (sdata->Loading.stage != s_diagLastLoadingStage))
 			{
 				printf("[CTR Native/Diag] CTR_Main: mainGameState %d -> %d, Loading.stage %d -> %d\n", s_diagLastMainGameState,
@@ -110,6 +111,15 @@ u32 main(void)
 				fflush(stdout);
 				s_diagLastMainGameState = sdata->mainGameState;
 				s_diagLastLoadingStage = sdata->Loading.stage;
+			}
+			s_diagHeartbeat++;
+			if ((s_diagHeartbeat % 180) == 0)
+			{
+				printf("[CTR Native/Diag] CTR_Main heartbeat: mainGameState=%d Loading.stage=%d load_inProgress=%d queueReady=%d "
+				       "queueLength=%d queueRetry=%d XA_State=%d\n",
+				       sdata->mainGameState, sdata->Loading.stage, sdata->load_inProgress, sdata->queueReady, sdata->queueLength, sdata->queueRetry,
+				       sdata->XA_State);
+				fflush(stdout);
 			}
 		}
 #endif
